@@ -171,11 +171,36 @@ web/canvas.html     tablet drawing surface
 web/viewer.html     optional desktop view
 ```
 
-## Step 2 (not built yet)
+## Step 2: intent recognition and memory
 
-Text-to-speech on the tablet, driven by an API call on each captured image. The
-pieces already in place for it: the tablet's WebSocket is bidirectional and the
-server's `hub.to_tablets()` is wired but unused, so speech can be pushed down
-the existing connection; `CaptureRecord.analysis` is the field the API's text
-belongs in; and `CaptureStore.sinks` is where a database sink plugs in without
-touching the capture path.
+Captured strokes (and optional PNG) go through an eyes-free recognition layer
+for people who can only move one or two fingers. Offline feature compare always
+runs against stored drawing templates. Gemini then ranks the top 5 tags from
+`drawing_tags.json`. Those ranks get decreasing weights and are multiplied by
+the feature score:
+
+```text
+final_weight = rank_weight × llm_likelihood × feature_score
+```
+
+If the API faults or times out, the feature scores alone are the answer. A
+memory layer then appends today's note under `monthly_events/` and, at end of
+day, rewrites `compressed_history.txt`.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+# add GEMINI_API_KEY to .env
+
+.\.venv\Scripts\python.exe recognize.py demo --offline
+.\.venv\Scripts\python.exe recognize.py interpret examples/sample_strokes.json
+.\.venv\Scripts\python.exe gemini_session.py chat "I am thirsty"
+.\.venv\Scripts\python.exe gemini_session.py end-of-day
+```
+
+Stroke files from `data/captures/*.json` work here: each point only needs `x`
+and `y`. Full design notes are in [docs/recognition.md](docs/recognition.md).
+
+Text-to-speech on the tablet is still open. The tablet WebSocket is
+bidirectional and `hub.to_tablets()` is wired but unused, so speech can be
+pushed down the existing connection; `CaptureRecord.analysis` is the field the
+recognition result belongs in.

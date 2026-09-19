@@ -1,0 +1,15 @@
+{
+  "name": "Alex Rivera",
+  "preferred_name": "Alex",
+  "age": 72,
+  "timezone": "America/New_York",
+  "notes": "Fictional example patient for local testing only. Limited motion in the right hand; uses one finger on the pad.",
+  "communication": {
+    "mode": "eyes-free finger drawing",
+    "typical_intents": ["water", "help", "rest", "food"]
+  },
+  "preferences": {
+    "tone": "calm and brief",
+    "interests": ["gardening", "sketches", "morning walks"]
+  }
+}
