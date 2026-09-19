@@ -470,11 +470,24 @@ body.brain {
 }
 .graph-host canvas:active { cursor: grabbing; }
 
-#side {
+.brain-detail {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
   border-left: 1px solid var(--line);
   background: var(--panel);
+}
+
+.side-head { display: contents; }
+.side-head > div { display: contents; }
+
+#side {
+  border-left: 0;
+  background: transparent;
   padding: 18px 16px;
   overflow: auto;
+  min-height: 0;
 }
 
 #side h2 { margin: 0 0 4px; font-size: 22px; }
@@ -496,6 +509,7 @@ body.brain {
 #side-facts dd { margin: 2px 0 0; }
 
 #side-links { display: flex; flex-wrap: wrap; gap: 6px; }
+#load-more { display: none; }
 .chip {
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -527,7 +541,7 @@ body.brain {
 }
 @media (max-width: 800px) {
   .brain-layout { grid-template-columns: 1fr; }
-  #side { border-left: 0; border-top: 1px solid var(--line); max-height: 34vh; }
+  .brain-detail { border-left: 0; border-top: 1px solid var(--line); max-height: 34vh; }
   .viewer-main { grid-template-columns: 1fr; }
   #brain-panel { border-left: 0; border-top: 1px solid var(--line); min-height: 240px; }
 }
@@ -594,24 +608,121 @@ body.caretaker #banner.emergency {
 }
 #side-image[hidden] { display: none; }
 
-body.brain.embed header .nav,
-body.brain.embed #demo { display: none; }
-body.brain.embed header .meta { display: none; }
-body.brain.embed .brain-layout {
-  grid-template-columns: 1fr;
+body.brain.embed {
+  grid-template-rows: auto 1fr;
 }
+body.brain.embed header {
+  padding: 8px 12px;
+}
+body.brain.embed header h1 { font-size: 14px; }
+body.brain.embed header .nav,
+body.brain.embed header .meta,
+body.brain.embed #demo,
+body.brain.embed #legend,
 body.brain.embed #history-pane { display: none; }
+
+body.brain.embed .brain-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+body.brain.embed .brain-graphs {
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+body.brain.embed #daily-pane {
+  grid-template-rows: auto minmax(0, 1fr);
+  border-right: 0;
+  min-height: 0;
+}
+body.brain.embed .graph-host {
+  min-height: 0;
+}
+
+body.brain.embed .brain-detail {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  border-left: 0;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  max-height: 36vh;
+  min-height: 0;
+}
+
+body.brain.embed #side {
+  border-left: 0;
+  border-top: 0;
+  max-height: none;
+  overflow: auto;
+  padding: 10px 12px 8px;
+}
+
+body.brain.embed .side-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+}
+body.brain.embed .side-head > div {
+  display: block;
+  min-width: 0;
+}
+body.brain.embed #side .kicker {
+  margin: 0 0 2px;
+}
+body.brain.embed #side-links-kicker {
+  margin: 8px 0 4px;
+}
+body.brain.embed #side h2 {
+  font-size: 16px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.brain.embed #side-type {
+  margin: 0;
+  font-size: 12px;
+}
+body.brain.embed #side-image {
+  width: 72px;
+  height: 72px;
+  max-height: 72px;
+  margin: 0;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+body.brain.embed #side-facts { display: none; }
+body.brain.embed #side-links {
+  gap: 5px;
+  max-height: 4.5em;
+  overflow: hidden;
+}
+body.brain.embed .chip {
+  font-size: 11px;
+  padding: 3px 7px;
+}
+
 body.brain.embed #load-more {
   display: block;
-  margin: 8px 12px 10px;
-  width: calc(100% - 24px);
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-  color: var(--text);
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: #101218;
+  color: var(--accent);
+  padding: 11px 12px;
+  font-size: 14px;
+  font-weight: 600;
 }
 body.brain.embed #load-more[hidden] { display: none; }
+body.brain.embed #load-more:disabled {
+  color: var(--muted);
+  font-weight: 500;
+}
 body.brain.embed .graph-tools button[data-act] {
   width: 36px;
   height: 32px;

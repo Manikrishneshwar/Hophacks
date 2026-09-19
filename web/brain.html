@@ -29,7 +29,6 @@
           </span>
         </h3>
         <div class="graph-host"><canvas id="daily-canvas"></canvas></div>
-        <button type="button" id="load-more" hidden>Load more</button>
       </section>
       <section class="graph-pane" id="history-pane">
         <h3>History <span id="history-meta" class="meta"></span>
@@ -44,15 +43,22 @@
         <div class="graph-host"><canvas id="history-canvas"></canvas></div>
       </section>
     </div>
-    <aside id="side">
-      <p class="kicker">Selected</p>
-      <h2 id="side-title">Waiting</h2>
-      <p id="side-type" class="meta">Click a node</p>
-      <img id="side-image" alt="drawing" hidden>
-      <dl id="side-facts"></dl>
-      <p class="kicker">Neighbors</p>
-      <div id="side-links"></div>
-    </aside>
+    <div class="brain-detail">
+      <aside id="side">
+        <div class="side-head">
+          <div>
+            <p class="kicker">Selected</p>
+            <h2 id="side-title">Waiting</h2>
+            <p id="side-type" class="meta">Click a node</p>
+          </div>
+          <img id="side-image" alt="drawing" hidden>
+        </div>
+        <dl id="side-facts"></dl>
+        <p class="kicker" id="side-links-kicker">Linked</p>
+        <div id="side-links"></div>
+      </aside>
+      <button type="button" id="load-more" hidden>Load more</button>
+    </div>
   </div>
 
   <footer id="legend"></footer>

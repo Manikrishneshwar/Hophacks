@@ -13,6 +13,7 @@ const sideImage = document.getElementById('side-image');
 if (new URLSearchParams(location.search).get('embed')) {
   document.body.classList.add('embed');
 }
+const embed = document.body.classList.contains('embed');
 
 let activePayload = { nodes: [], edges: [] };
 
@@ -29,34 +30,51 @@ function setFacts(pairs) {
 }
 
 function showNode(node, data) {
+  const linksKicker = document.getElementById('side-links-kicker');
   if (!node) {
     title.textContent = 'No memory yet';
-    typeEl.textContent = 'Load the sample week';
+    typeEl.textContent = 'Tap a node on the graph';
     if (sideImage) {
       sideImage.removeAttribute('src');
       sideImage.hidden = true;
     }
+    facts.innerHTML = '';
+    links.innerHTML = '';
+    if (linksKicker) linksKicker.hidden = true;
     return;
   }
   activePayload = data || activePayload;
   title.textContent = node.label;
   typeEl.textContent = node.group;
-  setFacts([
-    ['type', node.group],
-    ['weight', Number(node.weight || 0).toFixed(2)],
-    ['last seen', node.last_seen || ''],
-    ...Object.entries(node.props || {}),
-  ]);
+
+  // Phone embed keeps this short: title, type, drawing thumb, linked chips.
+  if (embed) {
+    facts.innerHTML = '';
+  } else {
+    setFacts([
+      ['type', node.group],
+      ['weight', Number(node.weight || 0).toFixed(2)],
+      ['last seen', node.last_seen || ''],
+      ...Object.entries(node.props || {}).filter(([key]) => key !== 'image'),
+    ]);
+  }
+
   const neighbors = (activePayload.edges || [])
     .filter((edge) => edge.from === node.id || edge.to === node.id)
     .map((edge) => {
       const otherId = edge.from === node.id ? edge.to : edge.from;
       const other = (activePayload.nodes || []).find((item) => item.id === otherId);
-      return `${(edge.relation || '').replaceAll('_', ' ')} → ${other ? other.label : otherId}`;
-    });
+      const label = other ? other.label : otherId;
+      if (embed) return label;
+      return `${(edge.relation || '').replaceAll('_', ' ')} → ${label}`;
+    })
+    .filter((label, index, all) => label && all.indexOf(label) === index)
+    .slice(0, embed ? 6 : 50);
+
+  if (linksKicker) linksKicker.hidden = neighbors.length === 0;
   links.innerHTML = neighbors.length
     ? neighbors.map((line) => `<span class="chip">${line}</span>`).join('')
-    : '<span class="meta">No links yet</span>';
+    : (embed ? '' : '<span class="meta">No links yet</span>');
 
   const image = (node.props || {}).image
     || (node.group === 'drawing' && /T/.test(String(node.label || ''))
@@ -83,7 +101,6 @@ function drawLegend(items) {
 const dailyView = new MemoryGraphView(document.getElementById('daily-canvas'), showNode);
 const historyView = new MemoryGraphView(document.getElementById('history-canvas'), showNode);
 const views = { daily: dailyView, history: historyView };
-const embed = document.body.classList.contains('embed');
 const PAGE = 5;
 let dailyFull = { nodes: [], edges: [] };
 let dailyLimit = PAGE;
@@ -133,15 +150,13 @@ function updateLoadMore() {
   }
   const total = primaryNodes(dailyFull.nodes || []).length;
   if (dailyLimit >= total) {
-    loadMoreBtn.hidden = total <= PAGE;
-    loadMoreBtn.disabled = true;
-    loadMoreBtn.textContent = total ? 'All loaded' : 'No events yet';
+    loadMoreBtn.hidden = true;
     return;
   }
   loadMoreBtn.hidden = false;
   loadMoreBtn.disabled = false;
   const left = total - dailyLimit;
-  loadMoreBtn.textContent = `Load more (${Math.min(PAGE, left)} of ${left})`;
+  loadMoreBtn.textContent = `Show ${Math.min(PAGE, left)} older events`;
 }
 
 document.querySelectorAll('.graph-tools button').forEach((button) => {
@@ -158,7 +173,8 @@ document.querySelectorAll('.graph-tools button').forEach((button) => {
 if (loadMoreBtn) {
   loadMoreBtn.addEventListener('click', () => {
     dailyLimit += PAGE;
-    apply('daily', dailyFull);
+    // keepView: false so the new nodes get a fresh fit; limit must NOT be reset in apply.
+    apply('daily', dailyFull, false, { preserveLimit: true });
   });
 }
 
@@ -168,17 +184,20 @@ async function fetchGraph(scope) {
   return response.json();
 }
 
-function apply(scope, payload, keepView) {
+function apply(scope, payload, keepView, options) {
   const source = payload || { nodes: [], edges: [] };
   let drawn = source;
   if (scope === 'daily') {
     dailyFull = source;
-    if (!keepView && embed) dailyLimit = PAGE;
+    // Only start back at the newest 5 on a real reload — never after "Load more".
+    if (embed && !keepView && !(options && options.preserveLimit)) {
+      dailyLimit = PAGE;
+    }
     drawn = embed ? slicePayload(source, dailyLimit) : source;
     const page = drawn.page;
     const stats = source.stats || {};
     dailyMeta.textContent = page
-      ? `${page.shown} of ${page.total} recent · pinch or +/− to zoom`
+      ? `${page.shown} of ${page.total} recent events`
       : `${stats.nodes || 0} nodes · ${stats.edges || 0} links`;
     dailyView.render(drawn, { keepView });
     updateLoadMore();
