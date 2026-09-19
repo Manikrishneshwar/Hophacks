@@ -200,12 +200,34 @@ class GeminiPatientModel:
             self._client = genai.Client(api_key=api_key)
         return self._client
 
-    def _generate(self, contents: list[Any], *, json_mode: bool = False) -> str:
+    def _contents_with_image(self, prompt: str, image: str | Path | None) -> list[Any]:
+        contents: list[Any] = [prompt]
+        if image is None:
+            return contents
+        image_path = Path(image).expanduser().resolve()
+        contents.insert(
+            0,
+            types.Part.from_bytes(
+                data=image_path.read_bytes(),
+                mime_type=guess_mime_type(image_path),
+            ),
+        )
+        return contents
+
+    def _generate(
+        self,
+        contents: list[Any],
+        *,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
         config_kwargs: dict[str, Any] = {
             "automatic_function_calling": types.AutomaticFunctionCallingConfig(disable=True),
         }
         if json_mode:
             config_kwargs["response_mime_type"] = "application/json"
+        if temperature is not None:
+            config_kwargs["temperature"] = temperature
         try:
             response = self._client_or_raise().models.generate_content(
                 model=self.model_name,
@@ -243,17 +265,7 @@ class GeminiPatientModel:
         if not user_message.strip():
             raise ValueError("user_message is empty")
         self.ensure_files()
-        contents: list[Any] = [self._interaction_prompt(user_message, on)]
-        if image is not None:
-            image_path = Path(image).expanduser().resolve()
-            contents.insert(
-                0,
-                types.Part.from_bytes(
-                    data=image_path.read_bytes(),
-                    mime_type=guess_mime_type(image_path),
-                ),
-            )
-
+        contents = self._contents_with_image(self._interaction_prompt(user_message, on), image)
         raw = self._generate(contents, json_mode=True)
         parsed = parse_json_object(raw)
         reply = str(parsed.get("reply") or "").strip()
@@ -370,45 +382,58 @@ class GeminiPatientModel:
         image: str | Path | None = None,
         feature_matches: list[dict[str, Any]] | None = None,
         top_k: int = 5,
-    ) -> list[dict[str, Any]]:
-        """Ask Gemini to rank known tags for a new drawing. Raises on API failure."""
+    ) -> dict[str, Any]:
+        """Ask Gemini to rank known tags for a new drawing. Raises on API failure.
+
+        `feature_matches` is accepted for older callers and ignored: templates
+        are the timeout fallback, not an input to the model.
+        """
+        del feature_matches
         if not tags:
-            return []
+            return {"rankings": [], "spoken": "", "seen": ""}
         allowed = {tag["id"] for tag in tags}
         ctx = self.context_bundle()
         prompt = (
-            "You help interpret an eyes-free finger drawing from a person with limited motion.\n"
-            "Rank the provided tags by how well they match the drawing and the person's context.\n"
-            f"Return JSON only: {{\"rankings\": [{{\"tag_id\": \"...\", \"likelihood\": 0.0, \"reason\": \"...\"}}]}}\n"
-            f"Return at most {top_k} tags, highest likelihood first. Use only tag_id values from the list.\n"
-            "likelihood must be a number from 0 to 1. Do not invent new tags.\n"
+            "You interpret a finger drawing from an eyes-free pad.\n"
+            "LOOK AT THE IMAGE FIRST. Describe what it shows, then map it to a tag.\n"
+            "An apple, pizza, sandwich, bowl, or other food is food. A cup, glass, "
+            "bottle, or tap is water. A cross or plus is help. A bed or pillow is rest.\n"
+            "Also look for a handwritten digit. If the drawing is clearly a 1 or a 2, "
+            "set digit to \"1\" or \"2\". A tall single vertical stroke may be a 1. "
+            "A 2 has a curved top and a baseline. Do not call an apple, pizza, cup, "
+            "bed, or random scribble a digit. If it is not clearly 1 or 2, digit is \"\".\n"
+            "Patient history is a weak tie-breaker only. Do not pick water just because "
+            "they have asked for water before if the drawing is clearly something else.\n"
+            "Yes and no are given by taps, never by this ranking.\n"
+            "The spoken sentence is first person, short, as the person talking to a "
+            "caregiver. Name the object if you can see it (apple, pizza, tea). "
+            "Do not stay artificially generic. No question, no list, no diagnosis.\n"
+            "If digit is 1 or 2, spoken can be empty; the pad will offer a drawing game.\n"
+            "Return JSON only: "
+            '{"seen": "what the drawing shows", "digit": "", '
+            '"rankings": [{"tag_id": "...", "likelihood": 0.0, "reason": "...", '
+            '"spoken": "I would like an apple, please.", "detail": "apple"}], '
+            '"spoken": "I would like an apple, please."}\n'
+            f"Return at most {top_k} tags, highest likelihood first. "
+            "Use only tag_id values from the list.\n"
+            "likelihood must be a number from 0 to 1. detail is a short specific "
+            "object (apple, pizza, tea), never the tag_id itself. Empty string if unknown.\n"
             "You are not a clinician and must not diagnose.\n\n"
             f"## Date\n{ctx['date']}\n\n"
-            f"## Patient data\n{ctx['patient_data']}\n\n"
-            f"## Compressed history\n{ctx['compressed_history']}\n\n"
-            f"## Daily brain (today)\n{ctx['daily_graph']}\n\n"
-            f"## History brain\n{ctx['memory_graph']}\n\n"
-            f"## Today's daily history\n{ctx['daily_history']}\n\n"
-            f"## Known tags\n{json.dumps(tags, indent=2)}\n\n"
-            f"## Offline feature matches\n{json.dumps(feature_matches or [], indent=2)}\n"
+            f"## Patient data (weak prior)\n{ctx['patient_data']}\n\n"
+            f"## Daily brain (today, weak prior)\n{ctx['daily_graph']}\n\n"
+            f"## History brain (weak prior)\n{ctx['memory_graph']}\n\n"
+            f"## Known tags\n{json.dumps(tags, indent=2)}\n"
         )
-        contents: list[Any] = [prompt]
-        if image is not None:
-            image_path = Path(image).expanduser().resolve()
-            contents.insert(
-                0,
-                types.Part.from_bytes(
-                    data=image_path.read_bytes(),
-                    mime_type=guess_mime_type(image_path),
-                ),
-            )
-        parsed = parse_json_object(self._generate(contents, json_mode=True))
+        parsed = parse_json_object(
+            self._generate(self._contents_with_image(prompt, image), json_mode=True, temperature=0.2)
+        )
         rows = parsed.get("rankings") or parsed.get("tags") or []
         rankings = []
-        seen: set[str] = set()
+        seen_ids: set[str] = set()
         for row in rows:
             tag_id = str(row.get("tag_id") or row.get("id") or "").strip()
-            if not tag_id or tag_id not in allowed or tag_id in seen:
+            if not tag_id or tag_id not in allowed or tag_id in seen_ids:
                 continue
             try:
                 likelihood = float(row.get("likelihood", 0))
@@ -420,14 +445,176 @@ class GeminiPatientModel:
                     "tag_id": tag_id,
                     "likelihood": likelihood,
                     "reason": str(row.get("reason") or "").strip(),
+                    "spoken": str(row.get("spoken") or "").strip(),
+                    "detail": str(row.get("detail") or "").strip().lower(),
                 }
             )
-            seen.add(tag_id)
+            seen_ids.add(tag_id)
             if len(rankings) >= top_k:
                 break
         if not rankings:
             raise RuntimeError("Gemini returned no valid tag rankings")
-        return rankings
+        spoken = str(parsed.get("spoken") or parsed.get("reply") or "").strip()
+        if not spoken and rankings[0].get("spoken"):
+            spoken = rankings[0]["spoken"]
+        digit = str(parsed.get("digit") or "").strip()
+        if digit not in {"1", "2"}:
+            digit = ""
+        return {
+            "rankings": rankings,
+            "spoken": spoken,
+            "seen": str(parsed.get("seen") or "").strip(),
+            "digit": digit,
+        }
+
+    def spoken_for_tag(
+        self,
+        tag_id: str,
+        *,
+        reason: str = "",
+        label: str | None = None,
+        image: str | Path | None = None,
+    ) -> str:
+        """One first-person sentence for a tag, used when the first guess was rejected."""
+        name = label or tag_id
+        ctx = self.context_bundle()
+        prompt = (
+            "Write the one sentence that should be spoken aloud on an eyes-free pad.\n"
+            "First person, short, as the person speaking to a caregiver. "
+            "If there is a drawing, name what it shows when it fits this intent "
+            "(apple, pizza, tea). No question, no list, no diagnosis. "
+            "Return JSON only: {\"spoken\": \"...\"}\n\n"
+            f"## Intent we are retrying\n{name} ({tag_id})\n"
+            f"## Why this guess\n{reason or 'previous guess was rejected'}\n\n"
+            f"## Patient data\n{ctx['patient_data']}\n"
+        )
+        parsed = parse_json_object(
+            self._generate(self._contents_with_image(prompt, image), json_mode=True, temperature=0.2)
+        )
+        return str(parsed.get("spoken") or parsed.get("reply") or "").strip()
+
+    def follow_ups_for_intent(
+        self,
+        tag_id: str,
+        *,
+        spoken: str = "",
+        seen: str = "",
+        image: str | Path | None = None,
+        limit: int = 2,
+    ) -> list[dict[str, str]]:
+        """Yes/no follow-ups to pin down food, drink, help, or rest."""
+        ctx = self.context_bundle()
+        hour = datetime.now().hour
+        prompt = (
+            "You are a calm in-room assistant on an eyes-free yes/no pad.\n"
+            "The person already confirmed a need. Only ask a follow-up if it would "
+            "change what you do next. Speak as the assistant, not as the patient.\n"
+            "Rules:\n"
+            "- water: if they already asked for water, return ZERO followups. "
+            "Never offer tea or coffee after water. Only ask Water? if they said "
+            "'a drink' with no specific.\n"
+            "- food: ask about a dish only if they said 'food' or 'something to eat' "
+            "with no specific. Never offer drinks.\n"
+            "- help: FIRST follow-up is always calling the named caretaker. "
+            "Then bathroom if needed. Never food or drink.\n"
+            "- rest: return ZERO followups.\n"
+            "Do not diagnose. Do not switch intents.\n"
+            "Each follow-up has:\n"
+            "- spoken: one short assistant question (Should I call Jordan?)\n"
+            "- question: 1-3 words on the pad (Call Jordan?)\n"
+            "- detail: a short label (call, soup, bathroom)\n"
+            f"Return JSON only: {{\"followups\": [{{\"spoken\": \"...\", \"question\": \"Call Jordan?\", \"detail\": \"call\"}}]}}\n"
+            f"Return at most {limit} followups. Empty list is allowed.\n\n"
+            f"## Local hour (24h)\n{hour}\n\n"
+            f"## Confirmed intent\n{tag_id}\n"
+            f"## What we already said\n{spoken or '(none)'}\n"
+            f"## What the drawing showed\n{seen or '(not described)'}\n\n"
+            f"## Patient data (includes caretaker)\n{ctx['patient_data']}\n"
+        )
+        parsed = parse_json_object(
+            self._generate(self._contents_with_image(prompt, image), json_mode=True, temperature=0.2)
+        )
+        rows = parsed.get("followups") or parsed.get("follow_ups") or []
+        out: list[dict[str, str]] = []
+        seen_details: set[str] = set()
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            detail = str(row.get("detail") or row.get("label") or "").strip().lower()
+            spoken_line = str(row.get("spoken") or "").strip()
+            question = str(row.get("question") or "").strip()
+            if not spoken_line or not detail or detail in seen_details:
+                continue
+            if not question:
+                question = f"{detail.capitalize()}?"
+            if not question.endswith("?"):
+                question = f"{question}?"
+            out.append({"spoken": spoken_line, "question": question, "detail": detail})
+            seen_details.add(detail)
+            if len(out) >= limit:
+                break
+        return out
+
+    def grade_shape(
+        self,
+        target: str,
+        *,
+        image: str | Path | None = None,
+    ) -> dict[str, Any]:
+        """Did the drawing match the prompted shape? Generous about tremor."""
+        prompt = (
+            "A person with limited motion and possible tremor was asked to draw "
+            f"a {target} on an eyes-free pad.\n"
+            "LOOK AT THE IMAGE. Decide if it is that shape, even if wobbly or incomplete.\n"
+            "A shaky closed loop is a circle. Four roughly straight sides is a square. "
+            "Three sides is a triangle. Be generous.\n"
+            "match is false if it is clearly a different shape, a digit, or a picture "
+            "of food or a cup.\n"
+            "If match is false, spoken is one short coaching nudge to try the same "
+            "shape again. Not a question. Do not diagnose.\n"
+            "If match is true, spoken can be empty.\n"
+            "Return JSON only: "
+            '{"match": true, "seen": "what it shows", "spoken": ""}\n'
+            f"## Target shape\n{target}\n"
+        )
+        parsed = parse_json_object(
+            self._generate(
+                self._contents_with_image(prompt, image),
+                json_mode=True,
+                temperature=0.2,
+            )
+        )
+        match = parsed.get("match")
+        if isinstance(match, str):
+            match = match.strip().lower() in {"true", "yes", "1"}
+        return {
+            "match": bool(match),
+            "seen": str(parsed.get("seen") or "").strip(),
+            "spoken": str(parsed.get("spoken") or parsed.get("nudge") or "").strip(),
+        }
+
+    def closing_for_need(
+        self,
+        tag_id: str,
+        *,
+        detail: str = "",
+        spoken: str = "",
+    ) -> str:
+        """Caregiver-side wrap-up after the person has tapped yes."""
+        prompt = (
+            "The person confirmed a need on an eyes-free pad.\n"
+            "Write ONE short closing line the pad speaks next, as the caregiver "
+            "or system acknowledging the action. Not in the patient's first person. "
+            "Not a question. No list. No diagnosis.\n"
+            "Examples: I'll order that pizza. I'll get you some water. Rest easy. "
+            "Someone is on the way.\n"
+            "Return JSON only: {\"spoken\": \"...\"}\n\n"
+            f"## Intent\n{tag_id}\n"
+            f"## Specific\n{detail or '(none)'}\n"
+            f"## What they confirmed\n{spoken or '(none)'}\n"
+        )
+        parsed = parse_json_object(self._generate([prompt], json_mode=True, temperature=0.3))
+        return str(parsed.get("spoken") or parsed.get("reply") or "").strip()
 
 
 def build_parser() -> argparse.ArgumentParser:

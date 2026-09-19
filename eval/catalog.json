@@ -1,0 +1,38 @@
+{
+  "updated_at": "2026-09-19T17:02:52+00:00",
+  "items": [
+    {
+      "id": "2026-09-19T12-54-22-462",
+      "source_id": "2026-09-19T12-54-22-462",
+      "png": "drawings/2026-09-19T12-54-22-462.png",
+      "strokes": "drawings/2026-09-19T12-54-22-462.json",
+      "tag": "food",
+      "detail": "pizza",
+      "digit": "",
+      "note": "pizza pictogram",
+      "added_at": "2026-09-19T17:02:52+00:00"
+    },
+    {
+      "id": "2026-09-19T12-53-36-527",
+      "source_id": "2026-09-19T12-53-36-527",
+      "png": "drawings/2026-09-19T12-53-36-527.png",
+      "strokes": "drawings/2026-09-19T12-53-36-527.json",
+      "tag": "water",
+      "detail": "",
+      "digit": "",
+      "note": "cup of water",
+      "added_at": "2026-09-19T17:02:52+00:00"
+    },
+    {
+      "id": "2026-09-19T12-48-47-883",
+      "source_id": "2026-09-19T12-48-47-883",
+      "png": "drawings/2026-09-19T12-48-47-883.png",
+      "strokes": "drawings/2026-09-19T12-48-47-883.json",
+      "tag": "help",
+      "detail": "",
+      "digit": "",
+      "note": "help",
+      "added_at": "2026-09-19T17:02:52+00:00"
+    }
+  ]
+}

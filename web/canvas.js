@@ -21,10 +21,12 @@ const promptTapsEl = document.getElementById('prompt-taps');
 const speechEl = document.getElementById('speech');
 const speechTextEl = document.getElementById('speech-text');
 const speechSourceEl = document.getElementById('speech-source');
+const gameEl = document.getElementById('game');
+const gameTextEl = document.getElementById('game-text');
 
 // Bumped whenever this file changes in a way a stale tablet would get wrong.
 // Must match CLIENT_VERSION in server/app.py.
-const CLIENT_VERSION = '5';
+const CLIENT_VERSION = '8';
 
 const PEN_COLOR = '#111318';
 const BASE_WIDTH = 2.6;
@@ -542,6 +544,29 @@ function hideSpeech() {
   stopSpeaking();
 }
 
+function setGame(target) {
+  if (!target) {
+    gameEl.hidden = true;
+    gameTextEl.textContent = '';
+    return;
+  }
+  gameTextEl.textContent = `a ${target}`;
+  gameEl.hidden = false;
+}
+
+function startCall(message) {
+  const name = message.name || 'caretaker';
+  const phone = (message.phone || '').replace(/\s+/g, '');
+  toast(`Calling ${name}`);
+  if (!phone) return;
+  const link = document.createElement('a');
+  link.href = `tel:${phone}`;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 replayButton.addEventListener('click', () => {
   unlockAudio();
   play();
@@ -610,6 +635,7 @@ function capture(trigger) {
   countdownEl.textContent = '';
   redraw();
   renderPrompt();
+  hideSpeech();
   flash();
   send({ type: 'clear' });
 }
@@ -698,6 +724,8 @@ function connect() {
     let message;
     try { message = JSON.parse(event.data); } catch { return; }
     if (message.type === 'speak') speak(message.text, message.url);
+    if (message.type === 'game') setGame(message.target);
+    if (message.type === 'call') startCall(message);
     if (message.type === 'welcome') {
       setStatus('connected', 'on');
       checkVersion(message.version);

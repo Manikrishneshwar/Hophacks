@@ -9,6 +9,7 @@ data/
 
 # Generated page previews.
 .preview/
+eval/reports/
 .DS_Store
 
 # Recognition templates and daily journals (created at runtime).

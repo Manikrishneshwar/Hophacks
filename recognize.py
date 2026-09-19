@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Fuse offline drawing features with Gemini tag ranking.
+"""Rank a pad drawing with Gemini; use local templates only as fallback.
 
-Always compare the incoming strokes to the drawing-feature database. That
-score is the fallback if Gemini fails or times out. When the model is
-available it ranks the top 5 tags from drawing_tags.json. Each rank gets a
-decreasing weight, then:
-
-    final_weight = rank_weight * llm_likelihood * feature_score
+Gemini sees the PNG and returns tag likelihoods plus a spoken sentence.
+Those ranks are used as-is. The drawing-feature database is compared every
+time so it is ready, but it only becomes the answer if Gemini fails or
+exceeds GEMINI_TIMEOUT_S (default 15).
 
 Usage:
   python recognize.py interpret strokes.json
@@ -20,17 +18,21 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
 from drawing_features import DrawingFeatureStore, load_strokes_file
 from drawing_tags import DEFAULT_TAGS_PATH, DrawingTagStore
-from gemini_session import GeminiPatientModel
+from gemini_session import GeminiPatientModel, utc_now
 
 DEFAULT_DB_PATH = Path("drawings_db.json")
 RANK_WEIGHTS = (1.0, 0.8, 0.6, 0.4, 0.2)
 TOP_K = 5
+SKIP_RANK_TAGS = frozenset({"yes", "no"})
+DEFAULT_TIMEOUT_S = 15.0
 
 
 @dataclass
@@ -44,7 +46,9 @@ class Candidate:
     final_weight: float
     matched_drawing_id: str | None = None
     reason: str = ""
-    source: str = "fused"
+    source: str = "gemini"
+    spoken: str = ""
+    detail: str = ""
 
 
 @dataclass
@@ -53,11 +57,15 @@ class RecognitionResult:
     fallback_used: bool
     candidates: list[Candidate] = field(default_factory=list)
     feature_matches: list[dict[str, Any]] = field(default_factory=list)
+    spoken: str = ""
+    seen: str = ""
+    digit: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "top_tag": self.top_tag,
             "fallback_used": self.fallback_used,
+            "spoken": self.spoken,
             "candidates": [asdict(item) for item in self.candidates],
             "feature_matches": self.feature_matches,
         }
@@ -111,57 +119,88 @@ class IntentRecognizer:
     ) -> RecognitionResult:
         feature_matches = self.features.score_all(strokes)
         ranked_features = feature_matches[:top_k]
+        catalog = [
+            tag for tag in self.tags.catalog_for_model() if tag["id"] not in SKIP_RANK_TAGS
+        ]
 
         if offline:
             result = self._from_features(ranked_features)
         else:
+            timeout = float(os.environ.get("GEMINI_TIMEOUT_S", DEFAULT_TIMEOUT_S))
+            pool = ThreadPoolExecutor(max_workers=1)
             try:
-                rankings = self.model.rank_drawing_tags(
-                    self.tags.catalog_for_model(),
+                ranked = pool.submit(
+                    self.model.rank_drawing_tags,
+                    catalog,
                     image=image,
-                    feature_matches=ranked_features,
                     top_k=top_k,
-                )
-                result = self._fuse(rankings, feature_matches)
-            except Exception:
+                ).result(timeout=timeout)
+                result = self._from_gemini(ranked.get("rankings") or [], feature_matches)
+                digit = str(ranked.get("digit") or "").strip()
+                result.digit = digit if digit in {"1", "2"} else ""
+                if not result.candidates and not result.digit:
+                    raise RuntimeError("Gemini returned no valid tag rankings")
+                overall = str(ranked.get("spoken") or "").strip()
+                if result.candidates:
+                    first_id = (ranked.get("rankings") or [{}])[0].get("tag_id")
+                    if not result.candidates[0].spoken and overall:
+                        if result.top_tag == first_id or not first_id:
+                            result.candidates[0].spoken = overall
+                    result.spoken = result.candidates[0].spoken or overall
+                result.seen = str(ranked.get("seen") or "").strip()
+            except TimeoutError:
+                print(f"[recognize] Gemini ranking timed out after {timeout:g}s")
                 result = self._from_features(ranked_features)
+            except Exception as exc:  # noqa: BLE001 - local features are the fallback
+                print(f"[recognize] Gemini ranking failed: {exc!r}")
+                result = self._from_features(ranked_features)
+            finally:
+                pool.shutdown(wait=False, cancel_futures=True)
 
         if update_memory:
             self._write_memory(result)
         return result
 
-    def _fuse(
+    def _from_gemini(
         self,
         rankings: list[dict[str, Any]],
         feature_matches: list[dict[str, Any]],
     ) -> RecognitionResult:
+        """Use Gemini likelihoods as the score. Feature scores are recorded, not multiplied in."""
         candidates = []
         for index, row in enumerate(rankings[:TOP_K]):
-            tag = self.tags.get(row["tag_id"])
+            try:
+                tag = self.tags.get(row["tag_id"])
+            except KeyError:
+                continue
             feature_score, drawing_id = feature_score_for_tag(tag, feature_matches, self.tags)
-            rank_weight = RANK_WEIGHTS[index]
             likelihood = float(row.get("likelihood") or 0.0)
             candidates.append(
                 Candidate(
                     tag_id=tag["id"],
                     label=tag.get("label") or tag["id"],
                     rank=index + 1,
-                    rank_weight=rank_weight,
+                    rank_weight=1.0,
                     likelihood=likelihood,
                     feature_score=feature_score,
-                    final_weight=round(rank_weight * likelihood * feature_score, 6),
+                    final_weight=round(likelihood, 6),
                     matched_drawing_id=drawing_id,
                     reason=row.get("reason") or "",
-                    source="fused",
+                    source="gemini",
+                    spoken=str(row.get("spoken") or "").strip(),
+                    detail=str(row.get("detail") or "").strip().lower(),
                 )
             )
         candidates.sort(key=lambda item: item.final_weight, reverse=True)
-        top = candidates[0].tag_id if candidates else None
+        for index, item in enumerate(candidates):
+            item.rank = index + 1
+        top = candidates[0] if candidates else None
         return RecognitionResult(
-            top_tag=top,
+            top_tag=top.tag_id if top else None,
             fallback_used=False,
             candidates=candidates,
             feature_matches=feature_matches[:TOP_K],
+            spoken=top.spoken if top else "",
         )
 
     def _from_features(self, feature_matches: list[dict[str, Any]]) -> RecognitionResult:
@@ -170,7 +209,7 @@ class IntentRecognizer:
         used_tags: set[str] = set()
         for index, match in enumerate(feature_matches[:TOP_K]):
             tag = self._tag_for_drawing(match)
-            if tag is None or tag["id"] in used_tags:
+            if tag is None or tag["id"] in used_tags or tag["id"] in SKIP_RANK_TAGS:
                 continue
             used_tags.add(tag["id"])
             rank = len(candidates)
@@ -238,6 +277,60 @@ class IntentRecognizer:
             note=f"top of {len(result.candidates)} candidates",
         )
         self.model.append_daily_note("\n".join(lines), user_message="pad drawing")
+
+    def confirm(
+        self,
+        result: RecognitionResult,
+        *,
+        spoken: str,
+        capture_id: str,
+        accepted: bool,
+    ) -> str:
+        """Write journal + graph only after the person has tapped yes or given up."""
+        if not result.candidates:
+            return ""
+        top = next((item for item in result.candidates if item.tag_id == result.top_tag), result.candidates[0])
+        if accepted:
+            note = spoken.strip() or f"Confirmed {top.tag_id}"
+            self.model.graph.ensure_seed(self.model.root)
+            self.model.graph.record_intent(
+                top.tag_id,
+                score=max(top.final_weight, 0.4),
+                source=top.source,
+                confirmed=True,
+                drawing_id=top.matched_drawing_id,
+                note=note,
+            )
+            self.model.daily_graph().record_intent(
+                top.tag_id,
+                score=max(top.final_weight, 0.4),
+                source=top.source,
+                confirmed=True,
+                drawing_id=top.matched_drawing_id,
+                note=note,
+            )
+            journal = f"Confirmed intent {top.tag_id}: {note}"
+        else:
+            journal = (
+                f"Guesses rejected for capture {capture_id}: "
+                + ", ".join(item.tag_id for item in result.candidates[:3])
+            )
+        path = self.model.ensure_daily_history()
+        block = [
+            f"## {utc_now().isoformat()}",
+            f"User: pad drawing {capture_id}",
+            f"Summary: {journal}",
+            "",
+        ]
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write("\n".join(block) + "\n")
+        return journal if accepted else ""
+
+    def patch_graphs(self, *, capture_id: str, journal: str) -> None:
+        """Optional LLM links on top of the local graph write. May be slow."""
+        if not journal:
+            return
+        self.model.update_graphs_with_llm(f"pad drawing {capture_id}", journal)
 
 
 def _circle(n: int = 120, radius: float = 20.0, origin: tuple[float, float] = (0.0, 0.0)) -> list[list[float]]:

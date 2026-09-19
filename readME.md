@@ -196,23 +196,24 @@ with open("data/index.jsonl", encoding="utf-8") as f:
     records = [json.loads(line) for line in f if line.strip()]
 ```
 
-Each record carries an `analysis` field, currently `null`, reserved for the text
-that step 2's API returns for that image.
+Each record's `analysis` field is filled after recognition: spoken `text`,
+`tag`, optional `detail` (soup, tea, …), and `confirmed`.
 
 ## Step 2 hook
 
 Every saved capture is handed to `process_capture` in `server/pipeline.py`.
-That function is a placeholder — replace its body with the real API call. It
-returns the text to be spoken, or `None` for nothing.
+That ranks the drawing, returns a spoken sentence (or `None` to stay silent),
+then the tablet confirms it.
 
 ```python
 def process_capture(image: Path, data: dict[str, Any]) -> str | None:
     # image: path to the PNG; image.read_bytes() for the raw bytes
-    # data:  {"points": [[x, y], ...], "strokes": int}
+    # data:  {"points": [[x, y], ...], "polylines": [[[x, y], ...], ...], "strokes": int}
 ```
 
 `points` is every point of every stroke in one flat list, in the order drawn.
-Stroke boundaries are not marked, only counted — pressure and timestamps are
+`polylines` is the same points still grouped by stroke — a cross and a cup
+cannot be told apart once the boundaries are gone. Pressure and timestamps are
 dropped. The coordinates are the smoothed ones, matching the PNG; the raw
 tremor samples are still in the capture's `.json` if you need them.
 
@@ -220,19 +221,20 @@ It runs on a worker thread *after* the upload has been answered, so a slow API
 call never holds up the tablet or risks its upload timing out. An exception is
 logged and swallowed rather than taking the server down.
 
-A capture with four strokes logs:
+A capture logs something like:
 
 ```
 [capture] 2026-09-19T02-46-21-390.png  4 strokes  42,849 bytes
 [pipeline] image   2026-09-19T02-46-21-390.png (42,849 bytes)
 [pipeline] strokes 4
 [pipeline] points  104, first=[150, 180], last=[671.9, 510.7]
+[pipeline] top     'water'  fallback=False
 [pipeline] text    'I would like a glass of water, please.'
 [analysis] 2026-09-19T02-46-21-390: I would like a glass of water, please.
 ```
 
-Until the real call is in, it returns `SAMPLE_TEXT` from the top of the file, so
-the speech half below has a fixed sentence to work against.
+If Gemini is down or the tag list has no match, it falls back to `SAMPLE_TEXT`
+so the tablet still speaks. Tests set `INK_RECOGNITION=0` to skip ranking.
 
 The returned text also appears under that capture's thumbnail in the viewer.
 
@@ -293,6 +295,8 @@ Set these in the environment before starting:
 | `INK_DATA_DIR` | `./data` | Where captures are written |
 | `INK_CONFIRM_TIMEOUT_S` | `60` | How long a spoken sentence waits to be confirmed |
 | `INK_SPEECH` | `1` | `0` skips synthesis; the tablet still speaks the text |
+| `INK_RECOGNITION` | `1` | `0` skips Gemini ranking and speaks `SAMPLE_TEXT` |
+| `GEMINI_TIMEOUT_S` | `15` | Seconds to wait on ranking before local templates answer |
 | `ELEVENLABS_API_KEY` | unset | Without it the tablet's own voice is used |
 | `ELEVENLABS_VOICE_ID` | Rachel | Any premade voice; the shared library needs a paid plan |
 | `ELEVENLABS_MODEL` | `eleven_flash_v2_5` | `eleven_multilingual_v2` for quality over cost |
@@ -309,7 +313,10 @@ overridden from the shell.
 .\.venv\Scripts\python.exe scripts\tap_test.py       # tap answers and multi-touch
 .\.venv\Scripts\python.exe scripts\smoothing_test.py # tremor filter effectiveness
 .\.venv\Scripts\python.exe scripts\pipeline_test.py  # what step 2 receives
+.\.venv\Scripts\python.exe scripts\recognize_test.py # ranking harness, no Gemini credits
+.\.venv\Scripts\python.exe scripts\eval_benchmark.py selftest # catalog, scoring, HTML report
 .\.venv\Scripts\python.exe scripts\speech_test.py    # synthesis, caching, fallback, confirm
+.\.venv\Scripts\python.exe scripts\gemini_key_test.py # GEMINI_API_KEY actually reaches Gemini
 .\.venv\Scripts\python.exe scripts\smoke_test.py     # HTTP path, against a running server
 .\.venv\Scripts\python.exe scripts\show_data.py      # list what has been captured
 .\.venv\Scripts\python.exe scripts\screenshots.py    # renders .preview/*.png
@@ -334,19 +341,14 @@ memory_graph.py     nodes and weighted links behind /brain
 
 ## Intent recognition and memory
 
-Captured strokes (and optional PNG) go through an eyes-free recognition layer
-for people who can only move one or two fingers. Offline feature compare always
-runs against stored drawing templates. Gemini then ranks the top 5 tags from
-`drawing_tags.json`. Those ranks get decreasing weights and are multiplied by
-the feature score:
-
-```text
-final_weight = rank_weight × llm_likelihood × feature_score
-```
-
-If the API faults or times out, the feature scores alone are the answer. A
-memory layer then appends today's note under `monthly_events/` and, at end of
-day, rewrites `compressed_history.txt`.
+Captured strokes and the PNG go through Gemini first. It ranks tags from the
+drawing (history is only a weak prior) and writes the sentence spoken on the
+pad, naming the object when it can see one. Local templates in
+`drawings_db.json` are compared in the background and used only if the API
+faults or exceeds `GEMINI_TIMEOUT_S`. A no tap retries the next guess. After a
+yes, follow-ups only run when the request is still generic (water does not
+ask tea; help offers to call the named caretaker). Then the pad speaks a
+caregiver closing (`I'll get you some water.`).
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -363,11 +365,6 @@ and `y`. Full design notes are in [docs/recognition.md](docs/recognition.md).
 
 ## Still to come
 
-The capture path does not call the recogniser yet: `process_capture` still
-returns `SAMPLE_TEXT`, and `IntentRecognizer().interpret(strokes, image=...)` is
-what belongs in its place. Everything downstream of that return value — speech,
-display on the canvas, the confirming tap — already works.
-
-Then the database. `CaptureRecord.analysis` is the field the recognition result
+The database. `CaptureRecord.analysis` is the field the recognition result
 belongs in, and `CaptureStore.sinks` is where a Postgres/TigerData sink plugs in
 without touching the capture path.

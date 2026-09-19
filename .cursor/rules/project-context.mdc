@@ -27,7 +27,7 @@ state and the working agreements.
 | `server/config.py` | Settings from env and `.env`, smoothing presets |
 | `server/storage.py` | Disk writes, `index.jsonl`, `answers.jsonl`, DB seam |
 | `server/app.py` | Routes, WebSocket hub, `ask_tablet()`, `analyse()` |
-| `server/pipeline.py` | Step 2 hook, currently returns `SAMPLE_TEXT` |
+| `server/pipeline.py` | Step 2 hook: `IntentRecognizer`, falls back to `SAMPLE_TEXT` |
 | `server/speech.py` | ElevenLabs synthesis, `data/tts/` cache, never raises |
 | `web/canvas.html/js` | Tablet surface: drawing, idle capture, taps, speech |
 | `web/viewer.html/js` | Optional desktop view, purely a listener |
@@ -35,7 +35,9 @@ state and the working agreements.
 Tests, each starting its own server on a free port: `browser_test.py` (capture
 loop), `tap_test.py` (tap answers, multi-touch), `smoothing_test.py` (tremor
 filter), `pipeline_test.py` (what step 2 receives), `speech_test.py` (synthesis,
-caching, keyless fallback, confirming tap). Also `smoke_test.py`, `ask.py`,
+caching, keyless fallback, confirming tap), `recognize_test.py` (Gemini ranking
+harness, timeout fallback), `eval_benchmark.py` (labeled drawings, ranking
+report for judges). Also `smoke_test.py`, `ask.py`,
 `show_data.py`, `show_strokes.py` against a running server.
 
 ## Status
@@ -44,17 +46,24 @@ caching, keyless fallback, confirming tap). Also `smoke_test.py`, `ask.py`,
 stroke JSON plus `index.jsonl`, optional viewer, tap-to-answer (one tap yes, two
 no), stroke start/end tones and vibration, One Euro tremor smoothing.
 
-**Only the API call itself is left in step 2.** `pipeline.process_capture(image,
-data)` prints a summary and returns `SAMPLE_TEXT`; the user replaces its body
-with the real call. `image` is a `Path`; `data` is `{"points": [[x, y], ...]
-flattened across all strokes in drawing order, "strokes": count}`. Called from
-`analyse()` after the upload response, on a worker thread.
+**Step 2 recognition is wired.** `pipeline.process_capture` ranks via
+Gemini from the PNG (history is a weak prior; `yes`/`no` are not drawing
+tags). Local templates in `drawings_db.json` are the fallback when Gemini
+fails or exceeds `GEMINI_TIMEOUT_S`. The spoken line may name the object
+(apple, pizza). A handwritten 1 or 2 starts a shape-drawing game. A no tap
+retries the next candidate (up to three). Follow-ups
+stay on the confirmed intent and are skipped once the request is specific
+(water does not ask tea; rest has none). Help offers to call the caretaker
+from `patient_data.json`; a yes opens `tel:` on the tablet. After a yes the
+pad speaks a caregiver closing and does not wait on the LLM graph patch. `SAMPLE_TEXT` remains the last fallback when ranking
+is empty, throws, or `INK_RECOGNITION=0`. `/brain` listens on the viewer
+websocket for `graph` updates and no longer auto-seeds demo data on GET.
 
 **Speech and confirmation are built and tested.** `analyse()` hands the text to
 `speech.synthesise()`, pushes `{"type": "speak", "text", "url"}` to tablets, then
 `ask_tablet("Did I get that right?")`, whose tap lands in `answers.jsonl` with
-the capture id and text in `context`. No API key yet: the user will add
-`ELEVENLABS_API_KEY` to `.env`, and until then the tablet speaks with its own
+the capture id and text in `context`. No ElevenLabs key yet: until
+`ELEVENLABS_API_KEY` is in `.env`, the tablet speaks with its own
 `speechSynthesis`. Model still undecided — `eleven_flash_v2_5` by default,
 switchable to `eleven_multilingual_v2` if hackathon credits come through.
 
@@ -89,5 +98,5 @@ the HTTP routes, or the scripts. The user intends to specify one.
   canvas shows only when their audio actually played.
 - `ELEVENLABS_BASE_URL` exists so `speech_test.py` can point synthesis at a stub.
   Nothing else should need it.
-- Redirecting a server's stdout to a file buffers it; use `python -u` when
-  capturing output for inspection.
+- `CaptureRecord.analysis` is filled after recognition (`text`, `tag`, `detail`,
+  `confirmed`). Reloading `/viewer` shows the spoken line.

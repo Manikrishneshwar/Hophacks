@@ -71,7 +71,7 @@ def main() -> int:
     data_dir = Path(tempfile.mkdtemp(prefix="ink-tap-"))
     base = f"http://127.0.0.1:{port}"
     env = {**os.environ, "INK_DATA_DIR": str(data_dir), "INK_PORT": str(port),
-           "INK_IDLE_TIMEOUT_MS": "60000", "PYTHONUTF8": "1"}
+           "INK_IDLE_TIMEOUT_MS": "60000", "INK_RECOGNITION": "0", "PYTHONUTF8": "1"}
 
     server = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "server.app:app", "--host", "127.0.0.1",

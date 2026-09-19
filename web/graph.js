@@ -174,10 +174,11 @@
       return event.shiftKey || event.altKey || event.button === 2 || event.buttons === 2;
     }
 
-    this.render = function render(payload) {
+    this.render = function render(payload, options) {
       data = payload || { nodes: [], edges: [] };
       model = layout(data.nodes || [], data.edges || []);
-      fit();
+      const keepView = options && options.keepView && canvas.width;
+      if (!keepView) fit();
       redraw();
       const person = (data.nodes || []).find((node) => node.group === 'person');
       if (person && onSelect) onSelect(person, data);

@@ -6,6 +6,8 @@ const legend = document.getElementById('legend');
 const demoBtn = document.getElementById('demo');
 const dailyMeta = document.getElementById('daily-meta');
 const historyMeta = document.getElementById('history-meta');
+const dot = document.getElementById('dot');
+const meta = document.getElementById('meta');
 
 let activePayload = { nodes: [], edges: [] };
 
@@ -72,15 +74,15 @@ async function fetchGraph(scope) {
   return response.json();
 }
 
-function apply(scope, payload) {
+function apply(scope, payload, keepView) {
   const stats = payload.stats || {};
   const label = `${stats.nodes || 0} nodes · ${stats.edges || 0} links`;
   if (scope === 'daily') {
     dailyMeta.textContent = label;
-    dailyView.render(payload);
+    dailyView.render(payload, { keepView });
   } else {
     historyMeta.textContent = label;
-    historyView.render(payload);
+    historyView.render(payload, { keepView });
     drawLegend(payload.legend || []);
   }
 }
@@ -106,7 +108,31 @@ demoBtn.addEventListener('click', async () => {
   }
 });
 
-loadBoth().catch((error) => {
-  title.textContent = 'Graph failed';
-  typeEl.textContent = String(error);
-});
+function connect() {
+  const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+  const socket = new WebSocket(`${scheme}://${location.host}/ws?role=viewer`);
+  socket.addEventListener('open', () => {
+    dot.className = 'dot on';
+    meta.textContent = 'live · confirmed drawings appear here';
+  });
+  socket.addEventListener('message', (event) => {
+    let message;
+    try { message = JSON.parse(event.data); } catch { return; }
+    if (message.type !== 'graph') return;
+    if (message.daily) apply('daily', message.daily, true);
+    if (message.history) apply('history', message.history, true);
+  });
+  socket.addEventListener('close', () => {
+    dot.className = 'dot off';
+    meta.textContent = 'offline · graphs will refresh when you reload';
+    setTimeout(connect, 1500);
+  });
+  socket.addEventListener('error', () => socket.close());
+}
+
+loadBoth()
+  .then(connect)
+  .catch((error) => {
+    title.textContent = 'Graph failed';
+    typeEl.textContent = String(error);
+  });

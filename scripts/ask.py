@@ -2,7 +2,7 @@
 
     python scripts/ask.py "Is this the right reading?"
 
-This is the same call step 2 will make to confirm an API result. Needs the
+This is the same call the server makes to confirm a spoken guess. Needs the
 server running and the tablet connected.
 """
 

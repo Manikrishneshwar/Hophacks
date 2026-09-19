@@ -96,10 +96,11 @@ def main() -> int:
     if listing[0]["id"] != record["id"]:
         failures.append("new capture is not at the top of the index")
 
-    for page in ("/canvas", "/viewer", "/static/canvas.js", "/static/viewer.js", "/static/style.css"):
+    for page in ("/canvas", "/viewer", "/brain", "/static/canvas.js", "/static/viewer.js",
+                 "/static/brain.js", "/static/graph.js", "/static/style.css"):
         if not get(page):
             failures.append(f"{page} returned nothing")
-    print("pages            canvas, viewer and assets all serve")
+    print("pages            canvas, viewer, brain and assets all serve")
 
     if failures:
         print("\nFAILED:")

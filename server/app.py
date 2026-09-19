@@ -27,7 +27,7 @@ from fastapi import Body, FastAPI, File, Form, UploadFile, WebSocket, WebSocketD
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import config, pipeline, speech
+from . import config, pipeline, shape_game, speech
 from .storage import CaptureRecord, store
 
 # Background tasks are held here; asyncio only keeps weak references, so a task
@@ -49,7 +49,7 @@ from memory_graph import MemoryGraph  # noqa: E402
 
 app = FastAPI(title="Ink Pipeline")
 
-CLIENT_VERSION = "5"
+CLIENT_VERSION = "8"
 
 
 @app.middleware("http")
@@ -99,7 +99,7 @@ class Hub:
         await self._send(list(self._viewers), message)
 
     async def to_tablets(self, message: dict[str, Any]) -> None:
-        """Unused in step 1. Step 2 pushes synthesized speech through here."""
+        """Push speech and questions to connected tablets."""
         await self._send(list(self._tablets), message)
 
     async def _send(self, sockets: list[WebSocket], message: dict[str, Any]) -> None:
@@ -189,16 +189,10 @@ async def memory_graph_payload(scope: str = "history") -> dict[str, Any]:
     if scope == "daily":
         graph = _daily_graph()
         payload = graph.vis_payload(on=date.today())
-        if payload["stats"]["by_type"].get("event", 0) < 1:
-            graph.seed_demo_day()
-            payload = graph.vis_payload(on=date.today())
         payload["scope"] = "daily"
         return payload
     graph = _history_graph()
     payload = graph.vis_payload()
-    if payload["stats"]["by_type"].get("event", 0) < 3:
-        graph.seed_demo_week()
-        payload = graph.vis_payload()
     payload["scope"] = "history"
     return payload
 
@@ -209,10 +203,12 @@ async def memory_graph_demo() -> dict[str, Any]:
     daily = _daily_graph()
     history.seed_demo_week()
     daily.seed_demo_day()
-    return {
+    payload = {
         "daily": daily.vis_payload(on=date.today()),
         "history": history.vis_payload(),
     }
+    await hub.to_viewers({"type": "graph", "daily": payload["daily"], "history": payload["history"]})
+    return payload
 
 
 @app.get("/api/config")
@@ -286,25 +282,270 @@ async def analyse(record: CaptureRecord, strokes: list[dict[str, Any]]) -> None:
     payload = pipeline.build_payload(strokes)
     image = config.CAPTURE_DIR / record.png
 
+    if shape_game.get(record.session_id):
+        await play_round(record, image)
+        return
+
     try:
-        text = await asyncio.to_thread(pipeline.process_capture, image, payload)
+        raw = await asyncio.to_thread(pipeline.process_capture, image, payload)
     except Exception as exc:  # noqa: BLE001 - a broken analysis must not kill the server
         print(f"[analysis] {record.id} failed: {exc!r}")
         return
 
-    if not text:
+    result = pipeline.as_capture_result(raw)
+    if not result or not result.text:
         return
 
-    print(f"[analysis] {record.id}: {text}")
-    await hub.to_viewers({"type": "analysis", "id": record.id, "text": text})
-    await speak(record, text)
+    print(f"[analysis] {record.id}: {result.text}")
+    await hub.to_viewers({"type": "analysis", "id": record.id, "text": result.text})
+    if result.tag_id == "play":
+        await offer_game(record, result)
+        return
+    await converse(record, result)
 
 
-async def speak(record: CaptureRecord, text: str) -> None:
-    """Say `text` on the tablet, then have the user confirm it with a tap."""
+async def offer_game(record: CaptureRecord, result: pipeline.CaptureResult) -> None:
+    """A handwritten 1 or 2 can start the shape-drawing game."""
+    answer = await speak_and_ask(
+        record,
+        result.text,
+        "Play a game?",
+        tag_id="play",
+    )
+    if answer != "yes":
+        if answer == "no":
+            await speak_only(record, "Okay.")
+        await persist_analysis(record, result, confirmed=False)
+        await push_game(None)
+        return
+
+    game = shape_game.start(record.session_id, digit=result.detail or "1")
+    print(f"[game] {record.session_id} start {game.target} (digit {result.detail})")
+    await speak_game(record, game.prompt(), game.target)
+    await persist_analysis(record, result, confirmed=True)
+
+
+async def play_round(record: CaptureRecord, image: Any) -> None:
+    game = shape_game.get(record.session_id)
+    if game is None:
+        return
+    target = game.target
+    graded = await asyncio.to_thread(pipeline.grade_shape, image, target)
+    if graded["match"]:
+        spoken, done = shape_game.succeed(record.session_id)
+        print(f"[game] {record.session_id} matched {target}")
+    else:
+        spoken, done = shape_game.fail(record.session_id, graded.get("spoken") or "")
+        print(f"[game] {record.session_id} miss {target}  {spoken}")
+
+    next_target = None if done else (shape_game.get(record.session_id).target if shape_game.get(record.session_id) else None)
+    await speak_game(record, spoken, next_target)
+    await persist_analysis(
+        record,
+        pipeline.CaptureResult(
+            text=spoken,
+            tag_id="game",
+            detail=target,
+        ),
+        confirmed=graded["match"],
+    )
+    await hub.to_viewers({"type": "analysis", "id": record.id, "text": spoken})
+
+
+async def speak_game(record: CaptureRecord, text: str, target: str | None) -> None:
+    await speak_only(record, text)
+    await push_game(target)
+
+
+async def push_game(target: str | None) -> None:
+    await hub.to_tablets({"type": "game", "target": target})
+    await hub.to_viewers({"type": "game", "target": target})
+
+
+async def push_graphs() -> None:
+    """Tell any open /brain page to redraw from disk."""
+    daily = await asyncio.to_thread(lambda: _daily_graph().vis_payload(on=date.today()))
+    history = await asyncio.to_thread(lambda: _history_graph().vis_payload())
+    daily["scope"] = "daily"
+    history["scope"] = "history"
+    await hub.to_viewers({"type": "graph", "daily": daily, "history": history})
+
+
+async def converse(record: CaptureRecord, result: pipeline.CaptureResult) -> None:
+    """Speak a guess, confirm it, retry a couple of times, then write memory."""
+    candidates = list(result.candidates)
+    guesses = candidates[: pipeline.MAX_GUESSES] if candidates else [None]
+    accepted = False
+    spoken = result.text
+
+    for index, candidate in enumerate(guesses):
+        if candidate is not None and index > 0:
+            image = config.CAPTURE_DIR / record.png
+            spoken = await asyncio.to_thread(
+                pipeline.spoken_for,
+                candidate.tag_id,
+                reason=candidate.reason or "previous guess was rejected",
+                label=candidate.label,
+                image=image,
+                prepared=getattr(candidate, "spoken", "") or "",
+            )
+            result.text = spoken
+            result.tag_id = candidate.tag_id
+            result.reason = candidate.reason
+            raw_detail = (getattr(candidate, "detail", None) or "").strip() or None
+            result.detail = raw_detail if pipeline.is_specific(raw_detail, candidate.tag_id) else None
+            if result.recognition is not None:
+                result.recognition.top_tag = candidate.tag_id
+                result.recognition.spoken = spoken
+            await hub.to_viewers({"type": "analysis", "id": record.id, "text": spoken})
+
+        question = "Did I get that right?" if index == 0 else "Is this better?"
+        answer = await speak_and_ask(record, spoken, question, tag_id=result.tag_id)
+        if answer is None:
+            await persist_analysis(record, result, confirmed=False)
+            return
+        if answer == "yes":
+            accepted = True
+            break
+        print(f"[analysis] {record.id} rejected guess {index + 1}: {spoken}")
+
+    if accepted:
+        await refine_details(record, result)
+        if (result.detail or "").lower() in {"call", "caretaker"}:
+            await place_caretaker_call(record, result)
+        else:
+            closing = await asyncio.to_thread(
+                pipeline.closing_for,
+                result.tag_id,
+                detail=result.detail,
+                spoken=result.text,
+            )
+            if closing:
+                print(f"[analysis] {record.id} closing: {closing}")
+                await speak_only(record, closing)
+
+    if not accepted and candidates:
+        spoken = "I am not sure. Could you draw that again?"
+        result.text = spoken
+        await speak_only(record, spoken)
+
+    journal = ""
+    try:
+        journal = await asyncio.to_thread(
+            pipeline.confirm_memory,
+            result,
+            accepted=accepted,
+            capture_id=record.id,
+        )
+        await persist_analysis(record, result, confirmed=accepted)
+        await push_graphs()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[analysis] {record.id} memory update failed: {exc!r}")
+
+    if accepted and journal:
+        schedule(patch_graphs_later(record, journal))
+
+    print(f"[analysis] {record.id} confirmed: {'yes' if accepted else 'no'}")
+
+
+async def refine_details(record: CaptureRecord, result: pipeline.CaptureResult) -> None:
+    """After a yes, ask only what a real assistant would still need to know."""
+    if not pipeline.needs_followup(result.tag_id, result.text, result.detail):
+        return
+
+    if pipeline.is_specific(result.detail, result.tag_id):
+        followups = [pipeline.followup_from_detail(result.detail)]
+    else:
+        seen = ""
+        if result.recognition is not None:
+            seen = getattr(result.recognition, "seen", "") or ""
+        followups = await asyncio.to_thread(
+            pipeline.follow_ups_for,
+            result.tag_id,
+            spoken=result.text,
+            seen=seen,
+            image=config.CAPTURE_DIR / record.png,
+        )
+    if not followups:
+        return
+
+    print(f"[analysis] {record.id} follow-ups: "
+          + ", ".join(item["detail"] for item in followups))
+
+    for item in followups:
+        line = item.get("spoken") or item["question"]
+        await hub.to_viewers({"type": "analysis", "id": record.id, "text": line})
+        answer = await speak_and_ask(
+            record,
+            line,
+            item["question"],
+            tag_id=result.tag_id,
+        )
+        if answer is None:
+            return
+        if answer == "yes":
+            result.text = line
+            result.detail = item["detail"]
+            print(f"[analysis] {record.id} detail: {item['detail']}")
+            return
+        print(f"[analysis] {record.id} not {item['detail']}")
+
+
+async def place_caretaker_call(record: CaptureRecord, result: pipeline.CaptureResult) -> None:
+    info = pipeline.caretaker()
+    name = str(info.get("name") or "your caretaker").strip()
+    phone = str(info.get("phone") or "").strip()
+    relation = str(info.get("relation") or "").strip()
+    spoken = f"Calling {name} now."
+    print(f"[call] {name}  {phone or '(no number)'}")
+    await speak_only(record, spoken)
+    await hub.to_tablets({
+        "type": "call",
+        "name": name,
+        "phone": phone,
+        "relation": relation,
+    })
+    await hub.to_viewers({
+        "type": "call",
+        "name": name,
+        "phone": phone,
+        "relation": relation,
+        "id": record.id,
+    })
+    result.text = spoken
+
+
+async def patch_graphs_later(record: CaptureRecord, journal: str) -> None:
+    """LLM graph links run after the tablet has already heard the closing."""
+    try:
+        await asyncio.to_thread(
+            pipeline.patch_graphs, capture_id=record.id, journal=journal
+        )
+        await push_graphs()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[recognize] graph patch skipped: {exc!r}")
+
+
+async def persist_analysis(
+    record: CaptureRecord,
+    result: pipeline.CaptureResult,
+    *,
+    confirmed: bool,
+) -> None:
+    await asyncio.to_thread(
+        store.update_analysis,
+        record.id,
+        {
+            "text": result.text,
+            "tag": result.tag_id,
+            "detail": result.detail,
+            "confirmed": confirmed,
+        },
+    )
+
+
+async def speak_only(record: CaptureRecord, text: str) -> None:
     audio = await asyncio.to_thread(speech.synthesise, text)
-
-    # A null url is not an error: the tablet then uses its own voice engine.
     await hub.to_tablets({
         "type": "speak",
         "id": record.id,
@@ -312,21 +553,27 @@ async def speak(record: CaptureRecord, text: str) -> None:
         "url": f"/tts/{audio.name}" if audio else None,
     })
 
+
+async def speak_and_ask(
+    record: CaptureRecord,
+    text: str,
+    question: str,
+    *,
+    tag_id: str | None = None,
+) -> str | None:
+    await speak_only(record, text)
     try:
-        answer = await ask_tablet(
-            "Did I get that right?",
+        return await ask_tablet(
+            question,
             timeout=config.CONFIRM_TIMEOUT_S,
-            context={"capture": record.id, "text": text},
+            context={"capture": record.id, "text": text, "tag": tag_id},
         )
     except RuntimeError:
         print(f"[analysis] {record.id} spoken to nobody: no tablet connected")
-        return
+        return None
     except asyncio.TimeoutError:
         print(f"[analysis] {record.id} left unconfirmed")
-        return
-
-    # The tap itself is already in answers.jsonl, with the capture id attached.
-    print(f"[analysis] {record.id} confirmed: {answer}")
+        return None
 
 
 async def handle_answer(message: dict[str, Any]) -> None:
@@ -364,6 +611,8 @@ async def websocket_endpoint(socket: WebSocket, role: str = "viewer") -> None:
                 "viewers": hub.viewer_count,
                 "version": CLIENT_VERSION,
             }))
+        else:
+            await socket.send_text(json.dumps({"type": "welcome", "role": role}))
         while True:
             raw = await socket.receive_text()
             if role != "tablet":

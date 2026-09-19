@@ -1,9 +1,9 @@
-"""Check what the step 2 placeholder actually receives when a capture lands.
+"""Check that a capture is handed to step 2 as a PNG plus flattened points.
 
     python scripts/pipeline_test.py
 
 Draws three separate strokes in a real browser, then asserts that
-`process_capture` is handed the PNG and a payload whose points are flattened
+`process_capture` receives the PNG and a payload whose points are flattened
 across all strokes in drawing order.
 """
 
@@ -27,7 +27,6 @@ SPY = '''
 import json, os
 from pathlib import Path
 from typing import Any
-from server.pipeline import build_payload  # noqa: F401
 
 def process_capture(image: Path, data: dict[str, Any]) -> str | None:
     Path(os.environ["SPY_OUT"]).write_text(json.dumps({
@@ -37,6 +36,7 @@ def process_capture(image: Path, data: dict[str, Any]) -> str | None:
         "keys": sorted(data),
         "strokes": data.get("strokes"),
         "points": data.get("points"),
+        "polylines": data.get("polylines"),
     }), encoding="utf-8")
     return "spoken text from the placeholder"
 '''
@@ -59,7 +59,7 @@ def main() -> int:
     # Swap the placeholder for a spy by shadowing it on sys.path.
     shim_dir = Path(tempfile.mkdtemp(prefix="ink-shim-"))
     (shim_dir / "sitecustomize.py").write_text(
-        "import server.pipeline as p, types\n"
+        "import server.pipeline as p\n"
         "ns = {}\n"
         f"exec({SPY!r}, ns)\n"
         "p.process_capture = ns['process_capture']\n",
@@ -154,7 +154,10 @@ def main() -> int:
 
         check(seen["image_exists"] and seen["image_bytes"] > 1000, "the PNG handed over is missing or empty")
         check(seen["image_name"].endswith(".png"), f"image is not a png: {seen['image_name']}")
-        check(seen["keys"] == ["points", "strokes"], f"payload keys are {seen['keys']}")
+        check(seen["keys"] == ["points", "polylines", "strokes"],
+              f"payload keys are {seen['keys']}")
+        check(len(seen.get("polylines") or []) == expected_strokes,
+              f"polyline count is {len(seen.get('polylines') or [])}, drew {expected_strokes}")
         check(seen["strokes"] == expected_strokes,
               f"stroke count is {seen['strokes']}, drew {expected_strokes}")
         check(all(len(p) == 2 for p in seen["points"]), "a point carried more than x and y")

@@ -32,7 +32,7 @@ def main() -> None:
     base = f"http://127.0.0.1:{port}"
 
     env = {**os.environ, "INK_DATA_DIR": str(data_dir), "INK_IDLE_TIMEOUT_MS": "20000",
-           "PYTHONUTF8": "1"}
+           "INK_RECOGNITION": "0", "PYTHONUTF8": "1"}
     server = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "server.app:app",
          "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],

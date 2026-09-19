@@ -45,8 +45,7 @@ class CaptureRecord:
     duration_ms: int
     idle_timeout_ms: int
     png_bytes: int
-    # Reserved for step 2: the text an API returns for this image, plus whatever
-    # metadata that call carries. Left null so records written today stay valid.
+    # Filled in after recognition: spoken text, tag, and whether it was confirmed.
     analysis: dict[str, Any] | None = None
     tags: list[str] = field(default_factory=list)
 
@@ -135,6 +134,34 @@ class CaptureStore:
                 print(f"[storage] sink {type(sink).__name__} failed: {exc}")
 
         return record
+
+    def update_analysis(self, capture_id: str, analysis: dict[str, Any]) -> None:
+        """Write the spoken result onto the stroke file and the index row."""
+        with self._lock:
+            json_path = self.capture_dir / f"{capture_id}.json"
+            if json_path.exists():
+                data = json.loads(json_path.read_text(encoding="utf-8"))
+                data["analysis"] = analysis
+                json_path.write_text(
+                    json.dumps(data, separators=(",", ":")),
+                    encoding="utf-8",
+                )
+            if not self.index_path.exists():
+                return
+            lines = self.index_path.read_text(encoding="utf-8").splitlines()
+            rewritten: list[str] = []
+            for line in lines:
+                if not line.strip():
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    rewritten.append(line)
+                    continue
+                if row.get("id") == capture_id:
+                    row["analysis"] = analysis
+                rewritten.append(json.dumps(row, separators=(",", ":")))
+            self.index_path.write_text("\n".join(rewritten) + "\n", encoding="utf-8")
 
     def save_answer(
         self,

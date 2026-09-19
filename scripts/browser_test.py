@@ -54,6 +54,7 @@ def main() -> int:
         "INK_PORT": str(port),
         "INK_HOST": "127.0.0.1",
         "INK_IDLE_TIMEOUT_MS": str(IDLE_MS),
+        "INK_RECOGNITION": "0",
         "PYTHONUTF8": "1",
     }
     server = subprocess.Popen(

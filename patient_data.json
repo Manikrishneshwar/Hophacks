@@ -10,6 +10,16 @@
   },
   "preferences": {
     "tone": "calm and brief",
-    "interests": ["gardening", "sketches", "morning walks"]
+    "interests": ["gardening", "sketches", "morning walks"],
+    "foods": ["soup", "toast", "oatmeal", "a sandwich"],
+    "drinks": ["water", "tea", "coffee"],
+    "help_reasons": ["bathroom", "sit up", "something is out of reach"],
+    "rest_reasons": ["a nap", "lie down", "sleep"]
+  },
+  "caretaker": {
+    "name": "Jordan Chen",
+    "relation": "daughter",
+    "phone": "+15555550100",
+    "notes": "Primary contact. Fictional number for local testing only."
   }
 }

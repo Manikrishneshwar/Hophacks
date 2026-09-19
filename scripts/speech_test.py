@@ -158,6 +158,7 @@ def main() -> int:  # noqa: C901 - a linear script, read top to bottom
             "INK_DATA_DIR": str(data_dir),
             "INK_IDLE_TIMEOUT_MS": "600000",   # only manual sends in this test
             "INK_SMOOTHING": "off",
+            "INK_RECOGNITION": "0",
             "PYTHONUTF8": "1",
             **extra,
         }

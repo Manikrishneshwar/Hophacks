@@ -513,6 +513,8 @@ class MemoryGraph:
         if water in self._data["nodes"] and food in self._data["nodes"]:
             self.link(water, "followed_by", food, weight=0.4)
         self.save()
+
+    def seed_demo_week(self) -> None:
         """Fictional week of activity so judges see a populated second brain."""
         today = date.today()
         story = [
@@ -541,6 +543,7 @@ class MemoryGraph:
                 on=on,
                 note=note,
             )
+        self.save()
 
 
 def load_root_graph(root: str | Path = ".") -> MemoryGraph:

@@ -98,3 +98,11 @@ ELEVENLABS_BASE_URL = os.environ.get("ELEVENLABS_BASE_URL", "https://api.elevenl
 # ask_tablet default because an unanswered question is replaced by the next
 # capture anyway, and a stale question on screen is worse than none.
 CONFIRM_TIMEOUT_S = float(os.environ.get("INK_CONFIRM_TIMEOUT_S", "60"))
+
+# Drawings go through IntentRecognizer unless a test turns this off. The
+# scripts that start their own server set INK_RECOGNITION=0 so they do not
+# spend Gemini credits or write into monthly_events/.
+RECOGNITION_ENABLED = os.environ.get("INK_RECOGNITION", "1") == "1"
+
+# How long ranking may wait on Gemini before local drawing templates answer.
+GEMINI_TIMEOUT_S = float(os.environ.get("GEMINI_TIMEOUT_S", "15"))
