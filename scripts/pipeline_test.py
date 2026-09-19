@@ -115,7 +115,7 @@ def main() -> int:
                 page.mouse.up()
 
             drawn = page.evaluate("strokes.map(s => s.points.map(p => [p[0], p[1]]))")
-            page.click("#send")
+            page.evaluate("() => capture('manual')")
             page.wait_for_function("strokes.length === 0", timeout=15000)
 
             # The canvas clears itself before the PNG has even been encoded, so

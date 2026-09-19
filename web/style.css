@@ -65,10 +65,21 @@ body.tablet {
   padding: 10px 16px;
   font-size: 14px;
   touch-action: manipulation;
+  flex: 0 0 auto;
 }
 
 #bar button:active { background: #222734; }
-#bar button.primary { background: #1d3054; border-color: #2f5ea8; }
+
+@media (max-width: 480px) {
+  #status { display: none; }
+  #bar .spacer { display: none; }
+  #bar { gap: 6px; }
+  #bar button {
+    flex: 1 1 0;
+    padding: 12px 8px;
+    font-size: 15px;
+  }
+}
 
 #bar button:disabled { color: var(--muted); opacity: .55; }
 

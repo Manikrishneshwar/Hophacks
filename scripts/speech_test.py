@@ -112,7 +112,7 @@ def draw_and_speak(page, base: str, y: int) -> dict | None:
     for i in range(1, 11):
         page.mouse.move(150 + i * 40, y)
     page.mouse.up()
-    page.click("#send")
+    page.evaluate("() => capture('manual')")
 
     # The canvas clears itself before the upload leaves, so wait on the server.
     for _ in range(60):
@@ -156,7 +156,7 @@ def main() -> int:  # noqa: C901 - a linear script, read top to bottom
         return {
             **os.environ,
             "INK_DATA_DIR": str(data_dir),
-            "INK_IDLE_TIMEOUT_MS": "600000",   # only manual sends in this test
+            "INK_IDLE_TIMEOUT_MS": "600000",   # only programmatic captures in this test
             "INK_SMOOTHING": "off",
             "INK_RECOGNITION": "0",
             "PYTHONUTF8": "1",

@@ -38,7 +38,7 @@ def post_capture() -> dict:
         "height": 820,
         "dpr": 2,
         "duration_ms": 240,
-        "idle_timeout_ms": 20000,
+        "idle_timeout_ms": 5000,
     }
 
     body = io.BytesIO()

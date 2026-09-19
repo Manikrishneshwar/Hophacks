@@ -36,7 +36,7 @@ HOST = os.environ.get("INK_HOST", "0.0.0.0")
 PORT = int(os.environ.get("INK_PORT", "8000"))
 
 # How long the canvas may sit untouched before it is captured and wiped.
-IDLE_TIMEOUT_MS = int(os.environ.get("INK_IDLE_TIMEOUT_MS", "20000"))
+IDLE_TIMEOUT_MS = int(os.environ.get("INK_IDLE_TIMEOUT_MS", "5000"))
 
 # Captures are flattened onto a white background so they are usable as-is by
 # vision models in step 2; transparent PNGs tend to render as black.

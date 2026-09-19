@@ -26,7 +26,7 @@ const gameTextEl = document.getElementById('game-text');
 
 // Bumped whenever this file changes in a way a stale tablet would get wrong.
 // Must match CLIENT_VERSION in server/app.py.
-const CLIENT_VERSION = '8';
+const CLIENT_VERSION = '9';
 
 const PEN_COLOR = '#111318';
 const BASE_WIDTH = 2.6;
@@ -37,7 +37,7 @@ const BACKGROUND = '#ffffff';
 const TAP_MAX_MS = 320;
 const TAP_MAX_TRAVEL = 14;
 
-let IDLE_MS = 20000;
+let IDLE_MS = 5000;
 let TAP_WINDOW_MS = 420;
 let TAP_ALWAYS_LISTEN = false;
 let SMOOTHING = null;      // One Euro parameters, or null when disabled
@@ -477,15 +477,12 @@ window.ink = ink;
  * confirms it and the user has to be able to check what was heard.
  */
 
-const replayButton = document.getElementById('replay');
-
 let audio = null;          // element playing server audio, if any
-let lastSpoken = null;     // { text, url }, so Replay has something to repeat
+let lastSpoken = null;     // { text, url }, so the sentence can be spoken again
 
 function speak(text, url) {
   if (!text) return;
   lastSpoken = { text, url: url || null };
-  replayButton.disabled = false;
   speechEl.hidden = false;
   speechTextEl.textContent = text;
   play();
@@ -497,7 +494,7 @@ function play() {
   stopSpeaking();
 
   if (!soundOn) {
-    speechSourceEl.textContent = 'sound is off · tap Sound, then Replay';
+    speechSourceEl.textContent = 'sound is off · tap Sound';
     ink.speech = { text, url, via: 'muted' };
     return;
   }
@@ -566,11 +563,6 @@ function startCall(message) {
   link.click();
   link.remove();
 }
-
-replayButton.addEventListener('click', () => {
-  unlockAudio();
-  play();
-});
 
 /* ---------------- idle timer ---------------- */
 
@@ -774,8 +766,6 @@ document.getElementById('clear').addEventListener('click', () => {
   hideSpeech();
   send({ type: 'clear' });
 });
-
-document.getElementById('send').addEventListener('click', () => capture('manual'));
 
 /* ---------------- boot ---------------- */
 

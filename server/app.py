@@ -49,7 +49,7 @@ from memory_graph import MemoryGraph  # noqa: E402
 
 app = FastAPI(title="Ink Pipeline")
 
-CLIENT_VERSION = "8"
+CLIENT_VERSION = "9"
 
 
 @app.middleware("http")

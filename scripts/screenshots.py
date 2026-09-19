@@ -77,7 +77,7 @@ def main() -> None:
 
             # One capture to populate the gallery, then redraw so the live pane
             # shows something too.
-            tablet.click("#send")
+            tablet.evaluate("() => capture('manual')")
             viewer.wait_for_selector("#gallery figure", timeout=15000)
             draw([(240 + i * 8, 470 + 6 * sin(i / 3)) for i in range(0, 80)])
             draw([(220 + i * 9, 300 + 90 * cos(i / 7)) for i in range(0, 70)])

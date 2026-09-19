@@ -42,7 +42,7 @@ report for judges). Also `smoke_test.py`, `ask.py`,
 
 ## Status
 
-**Step 1 is complete and tested.** Capture after 20s of inactivity, PNG plus
+**Step 1 is complete and tested.** Capture after 5s of inactivity, PNG plus
 stroke JSON plus `index.jsonl`, optional viewer, tap-to-answer (one tap yes, two
 no), stroke start/end tones and vibration, One Euro tremor smoothing.
 

@@ -2,7 +2,7 @@
 
 Draw on a tablet over the local network; every drawing lands on this machine as
 a PNG plus its raw stroke data, and the tablet canvas wipes itself clean after
-20 seconds of inactivity so you can keep going without touching anything.
+5 seconds of inactivity so you can keep going without touching anything.
 
 ## Setup from scratch
 
@@ -49,8 +49,8 @@ New-NetFirewallRule -DisplayName "InkPipeline" -Direction Inbound -Action Allow 
 ## Using it
 
 On the tablet, draw. The countdown in the bottom bar shows how long until the
-canvas captures itself; any pen contact resets it. `Send now` captures
-immediately, `Clear` discards without saving. An empty canvas never triggers a
+canvas captures itself; any pen contact resets it. `Clear` discards without
+saving, `Undo` removes the last stroke. An empty canvas never triggers a
 capture, so idle time costs nothing.
 
 Once a stylus has been used the page ignores finger input, so you can rest your
@@ -257,9 +257,9 @@ Put that in a `.env` file in the project root; it is gitignored. Without a key
 nothing breaks — the tablet reads the sentence with its own voice engine
 instead, which is why a demo on a dead Wi-Fi network still talks.
 
-The sentence is always shown on the canvas as well as spoken, and `Replay` in
-the bottom bar says it again. The `Sound` button suppresses speech along with
-the stroke tones; the text stays on screen either way.
+The sentence is always shown on the canvas as well as spoken. The `Sound`
+button suppresses speech along with the stroke tones; the text stays on screen
+either way.
 
 The free ElevenLabs tier requires visible attribution, so "Powered by
 ElevenLabs" appears under the sentence whenever their audio was used. It is not
@@ -287,7 +287,7 @@ Set these in the environment before starting:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `INK_IDLE_TIMEOUT_MS` | `20000` | Inactivity before auto-capture |
+| `INK_IDLE_TIMEOUT_MS` | `5000` | Inactivity before auto-capture |
 | `INK_SMOOTHING` | `medium` | Tremor filter: `off`, `light`, `medium`, `strong` |
 | `INK_TAP_WINDOW_MS` | `420` | Double-tap window, and the delay on a yes |
 | `INK_TAP_ALWAYS_LISTEN` | `0` | `1` makes an empty canvas always accept taps |
