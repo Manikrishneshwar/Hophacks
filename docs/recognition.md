@@ -39,12 +39,28 @@ Tablet stroke files (`[x, y, pressure, ms]`) are accepted; only `x` and `y` are 
 
 ## Memory layer
 
-| File | Role |
+Text history still exists. On top of it, every interaction updates a local
+knowledge graph (`memory_graph.json`) that you can open at `/brain`.
+
+| File / view | Role |
 | --- | --- |
 | `prompt.txt` | Main system prompt |
 | `patient_data.json` | Stable patient details |
 | `compressed_history.txt` | Running summary for the whole run |
 | `monthly_events/YYYY-MM/YYYY-MM-DD/daily_history.txt` | That day’s notes |
+| `memory_graph.json` | Second-brain nodes and weighted links |
+| `http://localhost:8000/brain` | Force-directed graph for judges |
+
+Nodes are the person, intents, drawings, days, events, and interests. There are
+two brains: **Today** (that day's events and how they connect) and **History**
+(the running graph). Scroll to zoom, drag to move. After each interaction Gemini
+can add nodes and links; those updated graphs are fed into the next prompt.
+
+```powershell
+.\.venv\Scripts\python.exe memory_graph.py seed --demo
+.\.venv\Scripts\python.exe run.py
+# then open http://localhost:8000/brain
+```
 
 ## Scripts
 

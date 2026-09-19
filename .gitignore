@@ -13,5 +13,6 @@ data/
 
 # Recognition templates and daily journals (created at runtime).
 drawings_db.json
+memory_graph.json
 monthly_events/**
 !monthly_events/.gitkeep

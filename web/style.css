@@ -203,6 +203,13 @@ header .spacer { flex: 1; }
 .qa.yes { border-color: #2c7a55; color: var(--good); }
 .qa.no { border-color: #8a3a3a; color: var(--bad); }
 
+.viewer-main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 0;
+  height: 100%;
+}
+
 #live-wrap {
   position: relative;
   display: flex;
@@ -212,6 +219,24 @@ header .spacer { flex: 1; }
   min-height: 0;
   overflow: hidden;
 }
+
+#brain-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+  background: #101218;
+}
+
+.brain-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brain-panel-head a { color: var(--accent); text-decoration: none; }
 
 /* Flex (rather than grid) centring so the canvas shrinks to the row instead of
    sizing the row to its own 1180x820 intrinsic dimensions. */
@@ -267,3 +292,155 @@ header .spacer { flex: 1; }
 }
 
 #gallery .empty { color: var(--muted); padding: 40px 4px; }
+
+header .nav,
+header button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  text-decoration: none;
+}
+header button:disabled { color: var(--muted); }
+
+body.brain {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  overflow: hidden;
+}
+
+.brain-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  min-height: 0;
+  height: 100%;
+}
+
+.brain-graphs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 0;
+  min-width: 0;
+}
+
+.graph-pane {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+}
+
+.graph-pane h3 {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.graph-tools { display: flex; gap: 4px; }
+.graph-tools button {
+  appearance: none;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+.graph-host canvas.rotating { cursor: alias; }
+
+.graph-host,
+#graph {
+  position: relative;
+  min-width: 0;
+  min-height: 280px;
+  height: 100%;
+  background:
+    radial-gradient(1200px 700px at 30% 20%, rgba(91, 157, 255, .08), transparent 55%),
+    #0e0f13;
+}
+
+.graph-host canvas,
+#graph-canvas,
+#brain-mini {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+.graph-host canvas:active { cursor: grabbing; }
+
+#side {
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  padding: 18px 16px;
+  overflow: auto;
+}
+
+#side h2 { margin: 0 0 4px; font-size: 22px; }
+#side .kicker {
+  margin: 16px 0 6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: 11px;
+}
+#side .kicker:first-child { margin-top: 0; }
+
+#side-facts { margin: 14px 0 0; }
+#side-facts dt {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 8px;
+}
+#side-facts dd { margin: 2px 0 0; }
+
+#side-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text);
+  background: #101218;
+}
+
+#legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+#legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+@media (max-width: 1100px) {
+  .brain-graphs { grid-template-columns: 1fr; }
+}
+@media (max-width: 800px) {
+  .brain-layout { grid-template-columns: 1fr; }
+  #side { border-left: 0; border-top: 1px solid var(--line); max-height: 34vh; }
+  .viewer-main { grid-template-columns: 1fr; }
+  #brain-panel { border-left: 0; border-top: 1px solid var(--line); min-height: 240px; }
+}

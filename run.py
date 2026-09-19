@@ -102,6 +102,7 @@ def main() -> None:
     print(f"  idle capture after {config.IDLE_TIMEOUT_MS / 1000:g}s of no drawing")
     print()
     print(f"  this machine   http://localhost:{config.PORT}/viewer   (optional)")
+    print(f"  second brain   http://localhost:{config.PORT}/brain")
 
     if tablet_url:
         print(f"  tablet         {tablet_url}")

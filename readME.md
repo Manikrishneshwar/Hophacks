@@ -60,6 +60,10 @@ The desktop view at <http://localhost:8000/viewer> mirrors strokes live and
 shows previous captures. It is entirely optional — captures are stored whether
 or not it is open.
 
+The second-brain view at <http://localhost:8000/brain> is the patient memory
+graph: people, intents, drawings, and days linked together. Use **Load sample
+week** if you want a populated graph for judges before any live captures.
+
 ## Answering yes/no by tapping
 
 On an **empty** canvas, one tap means yes and two taps mean no. There is no
@@ -169,6 +173,8 @@ server/storage.py   disk writes, the JSONL index, and the database seam
 server/app.py       routes and the WebSocket fan-out
 web/canvas.html     tablet drawing surface
 web/viewer.html     optional desktop view
+web/brain.html      second-brain memory graph
+memory_graph.py     nodes and weighted links behind /brain
 ```
 
 ## Step 2: intent recognition and memory

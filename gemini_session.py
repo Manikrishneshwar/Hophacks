@@ -33,6 +33,8 @@ from google import genai
 from google.genai import errors
 from google.genai import types
 
+from memory_graph import MemoryGraph
+
 DEFAULT_MODEL = "gemini-3.8-flash"
 PLACEHOLDER_KEYS = {"your-api-key-here", "changeme", "todo"}
 EMPTY_CONTEXT = "(empty)"
@@ -121,6 +123,8 @@ class GeminiPatientModel:
         self.model_name = model or os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
         self.on_date = on_date or date.today()
         self._client: genai.Client | None = None
+        self.history_graph = MemoryGraph(self.root / "memory_graph.json")
+        self.graph = self.history_graph
 
     def daily_dir(self, on: date | None = None) -> Path:
         day = on or self.on_date
@@ -136,11 +140,18 @@ class GeminiPatientModel:
             path.write_text("", encoding="utf-8")
         return path
 
+    def daily_graph(self, on: date | None = None) -> MemoryGraph:
+        graph = MemoryGraph(self.daily_dir(on) / "daily_graph.json")
+        graph.ensure_seed(self.root)
+        return graph
+
     def ensure_files(self) -> None:
         self.ensure_daily_history()
         if not self.compressed_history_path.exists():
             self.compressed_history_path.parent.mkdir(parents=True, exist_ok=True)
             self.compressed_history_path.write_text("", encoding="utf-8")
+        self.history_graph.ensure_seed(self.root)
+        self.daily_graph().ensure_seed(self.root)
 
     def read_prompt(self) -> str:
         text = read_text(self.prompt_path).strip()
@@ -169,6 +180,8 @@ class GeminiPatientModel:
             "patient_data": patient,
             "compressed_history": self.read_compressed_history() or EMPTY_CONTEXT,
             "daily_history": self.read_daily_history(on) or EMPTY_CONTEXT,
+            "memory_graph": self.history_graph.context_summary(),
+            "daily_graph": self.daily_graph(on).context_summary(),
             "date": (on or self.on_date).isoformat(),
             "daily_history_path": str(self.daily_history_path(on)),
         }
@@ -213,6 +226,8 @@ class GeminiPatientModel:
             f"## Date\n{ctx['date']}\n\n"
             f"## Patient data\n{ctx['patient_data']}\n\n"
             f"## Compressed history\n{ctx['compressed_history']}\n\n"
+            f"## Daily brain (today)\n{ctx['daily_graph']}\n\n"
+            f"## History brain\n{ctx['memory_graph']}\n\n"
             f"## Today's daily history\n{ctx['daily_history']}\n\n"
             f"## Current user message\n{user_message.strip()}\n"
         )
@@ -267,7 +282,45 @@ class GeminiPatientModel:
         block.append("")
         with path.open("a", encoding="utf-8") as handle:
             handle.write("\n".join(block) + "\n")
+        self.history_graph.ensure_seed(self.root)
+        daily_graph = self.daily_graph(on)
+        self.history_graph.record_interaction(user_message or "", daily_note, on=on)
+        daily_graph.record_interaction(user_message or "", daily_note, on=on)
+        try:
+            self.update_graphs_with_llm(user_message or "", daily_note, on=on)
+        except Exception:
+            pass
         return path
+
+    def update_graphs_with_llm(
+        self,
+        user_message: str,
+        daily_note: str,
+        on: date | None = None,
+    ) -> dict[str, Any]:
+        """Ask Gemini to add/connect nodes on both brains, then persist the patch."""
+        daily_graph = self.daily_graph(on)
+        prompt = (
+            "You maintain two memory graphs for an eyes-free assistive pad.\n"
+            "The DAILY brain is only today's unfolding events and how they connect.\n"
+            "The HISTORY brain is lasting facts, recurring intents, and patterns.\n"
+            "Return JSON only with keys daily and history, each {nodes:[], edges:[]}.\n"
+            "Node: {id, type, label, weight, note}. Types: person, intent, drawing, "
+            "interest, preference, day, event, theme.\n"
+            "Edge: {from, relation, to, weight}. Reuse existing ids when you can.\n"
+            "Connect today's events to each other (caused, followed, confirmed, same_need).\n"
+            "History edges should capture lasting patterns (often_requests, associated_with).\n"
+            "Do not diagnose or invent medical conditions.\n\n"
+            f"## New interaction\nUser: {user_message}\nNote: {daily_note}\n\n"
+            f"## Daily graph now\n{json.dumps(daily_graph.compact_for_llm(), indent=2)}\n\n"
+            f"## History graph now\n{json.dumps(self.history_graph.compact_for_llm(), indent=2)}\n"
+        )
+        parsed = parse_json_object(self._generate([prompt], json_mode=True))
+        daily_graph.apply_patch(parsed.get("daily") if isinstance(parsed.get("daily"), dict) else {})
+        self.history_graph.apply_patch(
+            parsed.get("history") if isinstance(parsed.get("history"), dict) else {}
+        )
+        return parsed
 
     def compress_history(self, on: date | None = None) -> str:
         """Rewrite compressed_history.txt from the running summary plus today's daily file."""
@@ -294,6 +347,20 @@ class GeminiPatientModel:
         )
         updated = self._generate([prompt], json_mode=False).strip() + "\n"
         self.compressed_history_path.write_text(updated, encoding="utf-8")
+        try:
+            merge_prompt = (
+                "Fold today's daily brain into the lasting history brain.\n"
+                "Return JSON only: {\"history\": {\"nodes\": [], \"edges\": []}}.\n"
+                "Promote recurring intents and keep only durable links. Do not diagnose.\n\n"
+                f"## Daily brain\n{json.dumps(self.daily_graph(day).compact_for_llm(), indent=2)}\n\n"
+                f"## History brain\n{json.dumps(self.history_graph.compact_for_llm(), indent=2)}\n"
+            )
+            parsed = parse_json_object(self._generate([merge_prompt], json_mode=True))
+            self.history_graph.apply_patch(
+                parsed.get("history") if isinstance(parsed.get("history"), dict) else parsed
+            )
+        except Exception:
+            pass
         return updated
 
     def rank_drawing_tags(
@@ -319,6 +386,8 @@ class GeminiPatientModel:
             f"## Date\n{ctx['date']}\n\n"
             f"## Patient data\n{ctx['patient_data']}\n\n"
             f"## Compressed history\n{ctx['compressed_history']}\n\n"
+            f"## Daily brain (today)\n{ctx['daily_graph']}\n\n"
+            f"## History brain\n{ctx['memory_graph']}\n\n"
             f"## Today's daily history\n{ctx['daily_history']}\n\n"
             f"## Known tags\n{json.dumps(tags, indent=2)}\n\n"
             f"## Offline feature matches\n{json.dumps(feature_matches or [], indent=2)}\n"

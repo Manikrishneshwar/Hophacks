@@ -221,6 +221,22 @@ class IntentRecognizer:
                 f"rank_w={item.rank_weight:.1f} likelihood={item.likelihood:.2f} "
                 f"feature={item.feature_score:.3f} ({item.source})"
             )
+        top = result.candidates[0]
+        self.model.graph.ensure_seed(self.model.root)
+        self.model.graph.record_intent(
+            top.tag_id,
+            score=top.final_weight,
+            source=top.source,
+            drawing_id=top.matched_drawing_id,
+            note=f"top of {len(result.candidates)} candidates",
+        )
+        self.model.daily_graph().record_intent(
+            top.tag_id,
+            score=top.final_weight,
+            source=top.source,
+            drawing_id=top.matched_drawing_id,
+            note=f"top of {len(result.candidates)} candidates",
+        )
         self.model.append_daily_note("\n".join(lines), user_message="pad drawing")
 
 

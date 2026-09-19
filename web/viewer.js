@@ -169,3 +169,12 @@ function connect() {
 clearLive();
 loadHistory();
 connect();
+
+const mini = document.getElementById('brain-mini');
+if (mini && window.MemoryGraphView) {
+  const miniView = new MemoryGraphView(mini);
+  fetch('/api/memory-graph?scope=history', { cache: 'no-store' })
+    .then((response) => response.json())
+    .then((data) => miniView.render(data))
+    .catch(() => {});
+}
