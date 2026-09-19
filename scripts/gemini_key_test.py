@@ -2,13 +2,13 @@
 
     python scripts/gemini_key_test.py
 
-Does not print the key. Sends a one-word ping with the same model the
-recogniser uses, so a pass here means ranking can talk to the API too.
+Does not print the key. Pings every model in the chain the recogniser would
+try, so a pass here means ranking can talk to the API too, and a partial pass
+says which name this key cannot use.
 """
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -20,7 +20,12 @@ from google import genai
 from google.genai import errors
 from google.genai import types
 
-from gemini_session import DEFAULT_MODEL, PLACEHOLDER_KEYS, key_looks_like_project_id, load_api_key
+from gemini_session import (
+    PLACEHOLDER_KEYS,
+    key_looks_like_project_id,
+    load_api_key,
+    resolve_model_chain,
+)
 
 
 def mask(key: str) -> str:
@@ -29,10 +34,36 @@ def mask(key: str) -> str:
     return f"{key[:4]}...{key[-2:]} ({len(key)} chars)"
 
 
+def ping(client: genai.Client, model: str) -> tuple[bool, str]:
+    """Send one word to `model`. Returns (worked, what to print)."""
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents='Reply with the single word "pong".',
+            config=types.GenerateContentConfig(
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+            ),
+        )
+    except errors.ClientError as exc:
+        detail = str(exc)
+        if "API_KEY_INVALID" in detail or "API key not valid" in detail:
+            return False, "the key was rejected"
+        if "NOT_FOUND" in detail or "not found" in detail.lower():
+            return False, "this key cannot use that model name"
+        return False, f"rejected: {detail[:90]}"
+    except Exception as exc:  # noqa: BLE001
+        return False, f"never reached Gemini: {exc!r}"
+
+    text = (response.text or "").strip()
+    if not text:
+        return False, "empty response body"
+    return True, text
+
+
 def main() -> int:
     load_dotenv(ROOT / ".env")
     key = load_api_key()
-    model = os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+    models = resolve_model_chain()
 
     if not key or key.lower() in PLACEHOLDER_KEYS:
         print("FAIL  GEMINI_API_KEY is missing. Copy .env.example to .env and paste a key")
@@ -44,37 +75,28 @@ def main() -> int:
         return 1
 
     print(f"key    {mask(key)}")
-    print(f"model  {model}")
+    print(f"chain  {', '.join(models)}")
+    print()
 
-    try:
-        client = genai.Client(api_key=key)
-        response = client.models.generate_content(
-            model=model,
-            contents='Reply with the single word "pong".',
-            config=types.GenerateContentConfig(
-                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-            ),
-        )
-    except errors.ClientError as exc:
-        detail = str(exc)
-        print(f"FAIL  Gemini rejected the request: {detail}")
-        if "API_KEY_INVALID" in detail or "API key not valid" in detail:
-            print("      The key was rejected. Create a new one at https://aistudio.google.com/apikey")
-        elif "NOT_FOUND" in detail or "not found" in detail.lower():
-            print("      That model name is not available on this key. Set GEMINI_MODEL in .env")
-            print("      to something this key can use, for example gemini-2.5-flash.")
-        return 1
-    except Exception as exc:  # noqa: BLE001
-        print(f"FAIL  request never reached Gemini: {exc!r}")
-        return 1
+    client = genai.Client(api_key=key)
+    working = []
+    for model in models:
+        worked, detail = ping(client, model)
+        print(f"{'ok  ' if worked else 'FAIL'}   {model:<22} {detail}")
+        if worked:
+            working.append(model)
 
-    text = (response.text or "").strip()
-    if not text:
-        print("FAIL  Gemini returned an empty body")
+    print()
+    if not working:
+        print("FAIL  no model in the chain works with this key")
+        print("      Create a key at https://aistudio.google.com/apikey, or set GEMINI_MODELS")
+        print("      in .env to names this key can use, comma separated.")
         return 1
-
-    print(f"reply  {text}")
-    print("ok     key works")
+    if len(working) < len(models):
+        dead = [model for model in models if model not in working]
+        print(f"ok     {len(working)} of {len(models)} work; {', '.join(dead)} would be skipped")
+        return 0
+    print(f"ok     every model in the chain works ({len(working)})")
     return 0
 
 

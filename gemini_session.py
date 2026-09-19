@@ -23,19 +23,55 @@ import mimetypes
 import os
 import re
 import sys
+import time
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import xai_backend
 from dotenv import load_dotenv
 from google import genai
-from google.genai import errors
 from google.genai import types
 
 from memory_graph import MemoryGraph
 
-DEFAULT_MODEL = "gemini-3.8-flash"
+# Chosen on free-tier availability, not on paper quality. `gemini-3.8-flash`
+# allows 20 requests per day, which one demo session exhausts, and then every
+# capture falls through to templates. The lite model answered every request and
+# got all three labelled eval drawings right; it is vaguer about the specific
+# object, which the follow-up questions are there to pin down anyway.
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+
+# A different model, so it draws on a different quota pool. Verified with image
+# input, which the ranking call needs. Not `gemini-2.5-flash`: it is still
+# listed by the API but 404s with "no longer available to new users".
+FALLBACK_MODEL = "gemini-3.6-flash"
+
+# Tried in order, so an exhausted or overloaded primary does not take the whole
+# pipeline down with it.
+DEFAULT_MODEL_CHAIN = (DEFAULT_MODEL, FALLBACK_MODEL)
+
+GEMINI_TIMEOUT_DEFAULT_S = 15.0
+
+# Generous, because the calls that use it happen after the pad has already spoken
+# and grok-4.6 spent 42-86s on the eval drawings while getting all of them right.
+GEMINI_SLOW_TIMEOUT_DEFAULT_S = 120.0
+
+# The API rejects a shorter per-request deadline outright, with
+# "Manually set deadline 8s is too short. Minimum allowed deadline is 10s."
+# Two real attempts therefore only fit inside a budget of 20s or more.
+API_MIN_DEADLINE_S = 10.0
+
+# Failures that would repeat identically on every model. The chain stops on
+# these instead of burning the budget proving the key is still wrong.
+PERMANENT_FAILURE_MARKERS = (
+    "API_KEY_INVALID",
+    "API key not valid",
+    "PERMISSION_DENIED",
+    "UNAUTHENTICATED",
+)
+
 PLACEHOLDER_KEYS = {"your-api-key-here", "changeme", "todo"}
 EMPTY_CONTEXT = "(empty)"
 
@@ -53,6 +89,60 @@ def load_api_key() -> str | None:
 
 def key_looks_like_project_id(api_key: str) -> bool:
     return api_key.startswith("gen-lang-client-") or api_key.startswith("projects/")
+
+
+def resolve_model_chain(model: str | None = None) -> tuple[str, ...]:
+    """Which models to try, in order.
+
+    An explicit `model` pins exactly one, because a caller that names a model
+    means it. Otherwise `GEMINI_MODELS` is a comma-separated chain, a lone
+    `GEMINI_MODEL` becomes the primary with the defaults kept behind it, and
+    with neither set the full default chain is used.
+    """
+    if model and model.strip():
+        return (model.strip(),)
+
+    listed = os.environ.get("GEMINI_MODELS", "")
+    chain = tuple(dict.fromkeys(part.strip() for part in listed.split(",") if part.strip()))
+    if chain:
+        return chain
+
+    primary = os.environ.get("GEMINI_MODEL", "").strip()
+    if primary:
+        return tuple(dict.fromkeys((primary, *DEFAULT_MODEL_CHAIN)))
+    return DEFAULT_MODEL_CHAIN
+
+
+def total_timeout_s() -> float:
+    """The budget one Gemini call may spend, across every model it tries."""
+    try:
+        return max(1.0, float(os.environ.get("GEMINI_TIMEOUT_S", GEMINI_TIMEOUT_DEFAULT_S)))
+    except ValueError:
+        return GEMINI_TIMEOUT_DEFAULT_S
+
+
+def slow_timeout_s() -> float:
+    """The budget for work nobody is waiting on, so a reasoning model can finish.
+
+    The end-of-day compression and the graph patch both run after the pad has
+    spoken, where the 15s that keeps the pad responsive only truncates a better
+    answer for no benefit.
+    """
+    try:
+        return max(1.0, float(os.environ.get("GEMINI_SLOW_TIMEOUT_S", GEMINI_SLOW_TIMEOUT_DEFAULT_S)))
+    except ValueError:
+        return GEMINI_SLOW_TIMEOUT_DEFAULT_S
+
+
+def is_permanent_failure(exc: BaseException) -> bool:
+    detail = str(exc)
+    return any(marker in detail for marker in PERMANENT_FAILURE_MARKERS)
+
+
+def brief(exc: BaseException, limit: int = 120) -> str:
+    """One short line from an API error, which is otherwise a wall of JSON."""
+    text = " ".join(str(exc).split())
+    return text if len(text) <= limit else text[: limit - 1] + "..."
 
 
 def guess_mime_type(image_path: Path) -> str:
@@ -120,11 +210,16 @@ class GeminiPatientModel:
         self.monthly_events_dir = (
             Path(monthly_events_dir) if monthly_events_dir else self.root / "monthly_events"
         )
-        self.model_name = model or os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+        self.models = resolve_model_chain(model)
         self.on_date = on_date or date.today()
         self._client: genai.Client | None = None
         self.history_graph = MemoryGraph(self.root / "memory_graph.json")
         self.graph = self.history_graph
+
+    @property
+    def model_name(self) -> str:
+        """The model tried first. Logs and scripts still talk about one model."""
+        return self.models[0]
 
     def daily_dir(self, on: date | None = None) -> Path:
         day = on or self.on_date
@@ -214,12 +309,23 @@ class GeminiPatientModel:
         )
         return contents
 
+    @property
+    def last_vendor(self) -> str:
+        """Which vendor answered the most recent call, "gemini" or "xai".
+
+        Read straight after the call that cares. Captures are handled one at a
+        time on the pad, so a single slot is enough; it would need to travel with
+        the request if several were ever answered at once.
+        """
+        return getattr(self, "_last_vendor", "")
+
     def _generate(
         self,
         contents: list[Any],
         *,
         json_mode: bool = False,
         temperature: float | None = None,
+        unhurried: bool = False,
     ) -> str:
         config_kwargs: dict[str, Any] = {
             "automatic_function_calling": types.AutomaticFunctionCallingConfig(disable=True),
@@ -228,18 +334,95 @@ class GeminiPatientModel:
             config_kwargs["response_mime_type"] = "application/json"
         if temperature is not None:
             config_kwargs["temperature"] = temperature
+
+        # A missing or malformed Gemini key is not fatal while another vendor is
+        # configured, so the complaint is held back and only raised below if xAI
+        # cannot answer either. Keeping the message means a setup with no keys at
+        # all still says which one to add.
         try:
-            response = self._client_or_raise().models.generate_content(
-                model=self.model_name,
-                contents=contents,
-                config=types.GenerateContentConfig(**config_kwargs),
-            )
-        except errors.ClientError as exc:
-            raise RuntimeError(f"Gemini request failed: {exc}") from exc
-        text = (response.text or "").strip()
-        if not text:
-            raise RuntimeError("Gemini returned an empty response")
-        return text
+            client = self._client_or_raise()
+        except RuntimeError as exc:
+            if not xai_backend.enabled():
+                raise
+            print(f"[gemini] unusable ({brief(exc)}); going straight to xai")
+            client = None
+
+        # One budget is shared across the chain, so falling back cannot make the
+        # person at the pad wait longer than a single attempt already did. The
+        # API's 10s floor means an even split only buys a rescue from a hanging
+        # model when the budget is large enough for every link to clear it; at
+        # the default 15s the primary gets the lot and the fallback covers the
+        # quick refusals instead, which is what a withdrawn or overloaded model
+        # actually returns.
+        budget = slow_timeout_s() if unhurried else total_timeout_s()
+        even_share = budget / max(1, len(self.models))
+        split_evenly = even_share >= API_MIN_DEADLINE_S
+        started = time.monotonic()
+
+        last_error: Exception | None = None
+        for index, model in enumerate(self.models if client is not None else ()):
+            remaining = self.models[index + 1:]
+            left = budget - (time.monotonic() - started)
+            if index and left < API_MIN_DEADLINE_S:
+                print(f"[gemini] skipping {model}: {left:.1f}s of budget left, "
+                      f"the API needs {API_MIN_DEADLINE_S:g}s")
+                break
+
+            attempt_s = even_share if split_evenly else max(API_MIN_DEADLINE_S, left)
+            config_kwargs["http_options"] = types.HttpOptions(timeout=int(attempt_s * 1000))
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(**config_kwargs),
+                )
+                text = (response.text or "").strip()
+                if not text:
+                    raise RuntimeError("Gemini returned an empty response")
+            except Exception as exc:  # noqa: BLE001 - the next model is the handler
+                last_error = exc
+                if not remaining or is_permanent_failure(exc):
+                    break
+                # Deliberately not naming the next model here: whether it is
+                # actually tried depends on the budget left at the top of the
+                # loop, and promising an attempt that gets skipped reads as a bug.
+                print(f"[gemini] {model} failed ({brief(exc)})")
+                continue
+            if index:
+                print(f"[gemini] {model} answered after {index} failed attempt(s)")
+            self._last_vendor = "gemini"
+            return text
+
+        # Another vendor, so a Google-wide outage or an exhausted Google quota
+        # does not reach it. Only worth starting with budget left, which is what
+        # a fast refusal leaves and an exhausted one does not: `recognize` caps
+        # the whole call at the same GEMINI_TIMEOUT_S, so overrunning here would
+        # be cut off anyway and only delay the on-machine model behind it.
+        if xai_backend.enabled():
+            left = budget - (time.monotonic() - started)
+            try:
+                text = xai_backend.generate(
+                    contents,
+                    json_mode=json_mode,
+                    temperature=temperature,
+                    timeout=left,
+                    unhurried=unhurried,
+                )
+            except Exception as exc:  # noqa: BLE001 - local vision is next
+                print(f"[xai] {xai_backend.model_name(unhurried=unhurried)} failed ({brief(exc)})")
+            else:
+                print(
+                    f"[xai] {xai_backend.model_name(unhurried=unhurried)} "
+                    "answered after Gemini failed"
+                )
+                self._last_vendor = "xai"
+                return text
+
+        if last_error is None:
+            raise RuntimeError("No model answered: no Gemini client and xai did not reply")
+        if isinstance(last_error, RuntimeError):
+            raise last_error
+        raise RuntimeError(f"Gemini request failed: {last_error}") from last_error
 
     def _interaction_prompt(self, user_message: str, on: date | None = None) -> str:
         ctx = self.context_bundle(on)
@@ -327,7 +510,9 @@ class GeminiPatientModel:
             f"## Daily graph now\n{json.dumps(daily_graph.compact_for_llm(), indent=2)}\n\n"
             f"## History graph now\n{json.dumps(self.history_graph.compact_for_llm(), indent=2)}\n"
         )
-        parsed = parse_json_object(self._generate([prompt], json_mode=True))
+        # Runs after the tablet has already heard its closing, so it can afford
+        # the slower and better model.
+        parsed = parse_json_object(self._generate([prompt], json_mode=True, unhurried=True))
         daily_graph.apply_patch(parsed.get("daily") if isinstance(parsed.get("daily"), dict) else {})
         self.history_graph.apply_patch(
             parsed.get("history") if isinstance(parsed.get("history"), dict) else {}
@@ -357,7 +542,7 @@ class GeminiPatientModel:
             f"## Previous compressed history\n{previous}\n\n"
             f"## Today's daily history\n{daily}\n"
         )
-        updated = self._generate([prompt], json_mode=False).strip() + "\n"
+        updated = self._generate([prompt], json_mode=False, unhurried=True).strip() + "\n"
         self.compressed_history_path.write_text(updated, encoding="utf-8")
         try:
             merge_prompt = (
@@ -367,7 +552,7 @@ class GeminiPatientModel:
                 f"## Daily brain\n{json.dumps(self.daily_graph(day).compact_for_llm(), indent=2)}\n\n"
                 f"## History brain\n{json.dumps(self.history_graph.compact_for_llm(), indent=2)}\n"
             )
-            parsed = parse_json_object(self._generate([merge_prompt], json_mode=True))
+            parsed = parse_json_object(self._generate([merge_prompt], json_mode=True, unhurried=True))
             self.history_graph.apply_patch(
                 parsed.get("history") if isinstance(parsed.get("history"), dict) else parsed
             )
@@ -397,17 +582,29 @@ class GeminiPatientModel:
             "You interpret a finger drawing from an eyes-free pad.\n"
             "LOOK AT THE IMAGE FIRST. Describe what it shows, then map it to a tag.\n"
             "An apple, pizza, sandwich, bowl, or other food is food. A cup, glass, "
-            "bottle, or tap is water. A cross or plus is help. A bed or pillow is rest.\n"
+            "bottle, or tap is water. A cross, plus, telephone, or phone handset is "
+            "help. A bed or pillow is rest.\n"
+            "Not every drawing is a care need. Mountains, a sun, a tree, a house, a "
+            "book, an animal, or any little scene is story. A smile, a face, a person, "
+            "or a heart is talk. Do not force those into food, water, help, or rest.\n"
+            "A triangle or pizza wedge is food, not a heart and not a scene. A single "
+            "cup is water. A cross or telephone is help. Only pick story or talk when "
+            "the drawing is clearly not one of those needs.\n"
             "Also look for a handwritten digit. If the drawing is clearly a 1 or a 2, "
             "set digit to \"1\" or \"2\". A tall single vertical stroke may be a 1. "
             "A 2 has a curved top and a baseline. Do not call an apple, pizza, cup, "
-            "bed, or random scribble a digit. If it is not clearly 1 or 2, digit is \"\".\n"
+            "bed, telephone, or random scribble a digit. If it is not clearly 1 or 2, "
+            "digit is \"\".\n"
             "Patient history is a weak tie-breaker only. Do not pick water just because "
             "they have asked for water before if the drawing is clearly something else.\n"
             "Yes and no are given by taps, never by this ranking.\n"
-            "The spoken sentence is first person, short, as the person talking to a "
-            "caregiver. Name the object if you can see it (apple, pizza, tea). "
-            "Do not stay artificially generic. No question, no list, no diagnosis.\n"
+            "For food, water, help, or rest, spoken is first person, short, as the "
+            "person talking to a caregiver. Name the object if you can see it "
+            "(apple, pizza, tea). No question, no list, no diagnosis.\n"
+            "For story, spoken is the pad offering: name what you see, then ask if "
+            "they want a short story (That looks like mountains. Want a short story?).\n"
+            "For talk, spoken is the pad offering company (That's a smile. Want some "
+            "company?).\n"
             "If digit is 1 or 2, spoken can be empty; the pad will offer a drawing game.\n"
             "Return JSON only: "
             '{"seen": "what the drawing shows", "digit": "", '
@@ -465,6 +662,9 @@ class GeminiPatientModel:
             "spoken": spoken,
             "seen": str(parsed.get("seen") or "").strip(),
             "digit": digit,
+            # Which vendor actually answered, so a Grok reading is not filed under
+            # Gemini in the logs or the caretaker view.
+            "vendor": self.last_vendor,
         }
 
     def spoken_for_tag(
@@ -475,14 +675,24 @@ class GeminiPatientModel:
         label: str | None = None,
         image: str | Path | None = None,
     ) -> str:
-        """One first-person sentence for a tag, used when the first guess was rejected."""
+        """One sentence for a tag, used when the first guess was rejected."""
         name = label or tag_id
         ctx = self.context_bundle()
+        if tag_id in {"story", "talk"}:
+            voice = (
+                "Speak as the pad offering something, not as the patient. "
+                "Name what the drawing shows, then ask if they want a short story "
+                "(story) or some company (talk). One or two short sentences."
+            )
+        else:
+            voice = (
+                "First person, short, as the person speaking to a caregiver. "
+                "If there is a drawing, name what it shows when it fits this intent "
+                "(apple, pizza, tea). No question, no list, no diagnosis."
+            )
         prompt = (
             "Write the one sentence that should be spoken aloud on an eyes-free pad.\n"
-            "First person, short, as the person speaking to a caregiver. "
-            "If there is a drawing, name what it shows when it fits this intent "
-            "(apple, pizza, tea). No question, no list, no diagnosis. "
+            f"{voice} "
             "Return JSON only: {\"spoken\": \"...\"}\n\n"
             f"## Intent we are retrying\n{name} ({tag_id})\n"
             f"## Why this guess\n{reason or 'previous guess was rejected'}\n\n"
@@ -614,6 +824,41 @@ class GeminiPatientModel:
             f"## What they confirmed\n{spoken or '(none)'}\n"
         )
         parsed = parse_json_object(self._generate([prompt], json_mode=True, temperature=0.3))
+        return str(parsed.get("spoken") or parsed.get("reply") or "").strip()
+
+    def companion_for_drawing(
+        self,
+        tag_id: str,
+        *,
+        seen: str = "",
+        detail: str = "",
+        image: str | Path | None = None,
+    ) -> str:
+        """A short story or a bit of company after they tap yes on an open drawing."""
+        if tag_id == "talk":
+            ask = (
+                "They drew a face, a person, or something companionable.\n"
+                "Speak two short kind sentences, or one gentle joke. "
+                "No question, no diagnosis, no medical advice.\n"
+            )
+        else:
+            ask = (
+                "They drew a scene, a book, an animal, or something to look at.\n"
+                "Tell a warm story in three short sentences about what the drawing "
+                "shows. No question, no diagnosis, no medical advice.\n"
+            )
+        prompt = (
+            f"{ask}"
+            "Return JSON only: {\"spoken\": \"...\"}\n\n"
+            f"## What the drawing showed\n{seen or detail or '(look at the image)'}\n"
+        )
+        parsed = parse_json_object(
+            self._generate(
+                self._contents_with_image(prompt, image),
+                json_mode=True,
+                temperature=0.6,
+            )
+        )
         return str(parsed.get("spoken") or parsed.get("reply") or "").strip()
 
 

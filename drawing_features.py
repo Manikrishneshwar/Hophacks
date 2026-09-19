@@ -121,6 +121,13 @@ def parse_strokes(raw: Any) -> list[Stroke]:
     for stroke in raw:
         if not stroke:
             continue
+        if isinstance(stroke, dict):
+            # How a capture's own `.json` stores a stroke: the points sit beside
+            # metadata like tool and smoothing, and `raw` holds the unfiltered
+            # samples. Iterating the dict itself would walk its keys.
+            stroke = stroke.get("points") or []
+            if not stroke:
+                continue
         points = [_as_point(p) for p in stroke]
         if points:
             strokes.append(points)

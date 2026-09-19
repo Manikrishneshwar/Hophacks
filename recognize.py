@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Rank a pad drawing with Gemini; use local templates only as fallback.
+"""Rank a pad drawing with Gemini, then with a local model, then with templates.
 
 Gemini sees the PNG and returns tag likelihoods plus a spoken sentence.
-Those ranks are used as-is. The drawing-feature database is compared every
-time so it is ready, but it only becomes the answer if Gemini fails or
-exceeds GEMINI_TIMEOUT_S (default 15).
+Those ranks are used as-is. If every Gemini model fails or the call exceeds
+GEMINI_TIMEOUT_S (default 15), a vision model on this machine reads the PNG
+instead (see local_vision.py). The drawing-feature database is compared every
+time so it is ready, but it only answers when both of those are unavailable.
 
 Usage:
   python recognize.py interpret strokes.json
@@ -24,6 +25,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+import local_vision
+import stroke_geometry
 from drawing_features import DrawingFeatureStore, load_strokes_file
 from drawing_tags import DEFAULT_TAGS_PATH, DrawingTagStore
 from gemini_session import GeminiPatientModel, utc_now
@@ -33,6 +36,13 @@ RANK_WEIGHTS = (1.0, 0.8, 0.6, 0.4, 0.2)
 TOP_K = 5
 SKIP_RANK_TAGS = frozenset({"yes", "no"})
 DEFAULT_TIMEOUT_S = 15.0
+
+# Below this a ranking is treated as no answer at all, and the next tier is asked.
+# A model that has actually read the drawing returns 0.8 or more; the values this
+# rejects are what comes back when it answered a different question, which is
+# 0.05 to 0.10 in practice. Must stay under `local_vision.LOCAL_LIKELIHOOD`, or
+# the on-machine model's own answers would be thrown away as well.
+MIN_USABLE_LIKELIHOOD = 0.25
 
 
 @dataclass
@@ -60,12 +70,19 @@ class RecognitionResult:
     spoken: str = ""
     seen: str = ""
     digit: str = ""
+    # "geometry", "gemini", or "" when no digit was read. Worth keeping apart:
+    # a geometry digit is repeatable, a Gemini one is not.
+    digit_source: str = ""
+    digit_reason: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "top_tag": self.top_tag,
             "fallback_used": self.fallback_used,
             "spoken": self.spoken,
+            "digit": self.digit,
+            "digit_source": self.digit_source,
+            "digit_reason": self.digit_reason,
             "candidates": [asdict(item) for item in self.candidates],
             "feature_matches": self.feature_matches,
         }
@@ -117,11 +134,39 @@ class IntentRecognizer:
         update_memory: bool = True,
         top_k: int = TOP_K,
     ) -> RecognitionResult:
-        feature_matches = self.features.score_all(strokes)
+        local_digit = stroke_geometry.detect_digit(strokes)
+        try:
+            feature_matches = self.features.score_all(strokes)
+        except ValueError as exc:
+            # Unusable stroke data must not sink the whole capture: the PNG is
+            # what Gemini and the local model read, and either can still answer
+            # without a single parsed point. Only templates need the strokes,
+            # and they are the fallback of last resort anyway. Reachable only
+            # once the template database has entries, since an empty one never
+            # looks at the strokes at all.
+            print(f"[recognize] stroke features unavailable: {exc}")
+            feature_matches = []
         ranked_features = feature_matches[:top_k]
         catalog = [
             tag for tag in self.tags.catalog_for_model() if tag["id"] not in SKIP_RANK_TAGS
         ]
+
+        # An unmistakable 1 or 2 needs no model. Answering from geometry keeps
+        # the game instant and reachable with no key and no network, and no
+        # candidates are invented for a drawing that was never an intent.
+        if local_digit.fast_path:
+            print(f"[recognize] digit   {local_digit.digit} from geometry: {local_digit.reason}")
+            result = RecognitionResult(
+                top_tag=None,
+                fallback_used=False,
+                feature_matches=ranked_features,
+                digit=local_digit.digit,
+                digit_source="geometry",
+                digit_reason=local_digit.reason,
+            )
+            if update_memory:
+                self._write_memory(result)
+            return result
 
         if offline:
             result = self._from_features(ranked_features)
@@ -136,10 +181,35 @@ class IntentRecognizer:
                     top_k=top_k,
                 ).result(timeout=timeout)
                 result = self._from_gemini(ranked.get("rankings") or [], feature_matches)
+                vendor = str(ranked.get("vendor") or "").strip()
+                if vendor and vendor != "gemini":
+                    for item in result.candidates:
+                        item.source = vendor
                 digit = str(ranked.get("digit") or "").strip()
                 result.digit = digit if digit in {"1", "2"} else ""
+
+                # A claimed digit that geometry refuses means the model was
+                # answering the digit question, not the intent one, so whatever
+                # ranking came back beside it was never really about the drawing.
+                # Long curved shapes such as a telephone handset trigger this,
+                # and the leftover tag arrives with a likelihood near zero.
+                if result.digit and local_digit.veto:
+                    raise RuntimeError(
+                        f"claimed digit {result.digit} refused by geometry "
+                        f"({local_digit.reason}); its ranking is not trustworthy either"
+                    )
                 if not result.candidates and not result.digit:
                     raise RuntimeError("Gemini returned no valid tag rankings")
+                # A real reading of a drawing scores 0.8 or better. Speaking a 0.05
+                # guess aloud with full confidence is how a handset became "I would
+                # like a glass of water". A digit needs no tag, so it is exempt.
+                if result.candidates and not result.digit:
+                    best = result.candidates[0].likelihood
+                    if best < MIN_USABLE_LIKELIHOOD:
+                        raise RuntimeError(
+                            f"top tag {result.top_tag!r} scored only {best:.2f}, "
+                            f"under the {MIN_USABLE_LIKELIHOOD:g} floor"
+                        )
                 overall = str(ranked.get("spoken") or "").strip()
                 if result.candidates:
                     first_id = (ranked.get("rankings") or [{}])[0].get("tag_id")
@@ -150,16 +220,85 @@ class IntentRecognizer:
                 result.seen = str(ranked.get("seen") or "").strip()
             except TimeoutError:
                 print(f"[recognize] Gemini ranking timed out after {timeout:g}s")
-                result = self._from_features(ranked_features)
+                result = self._without_gemini(catalog, ranked_features, feature_matches, image)
             except Exception as exc:  # noqa: BLE001 - local features are the fallback
                 print(f"[recognize] Gemini ranking failed: {exc!r}")
-                result = self._from_features(ranked_features)
+                result = self._without_gemini(catalog, ranked_features, feature_matches, image)
             finally:
                 pool.shutdown(wait=False, cancel_futures=True)
+
+        self._settle_digit(result, local_digit)
 
         if update_memory:
             self._write_memory(result)
         return result
+
+    def _without_gemini(
+        self,
+        catalog: list[dict[str, Any]],
+        ranked_features: list[dict[str, Any]],
+        feature_matches: list[dict[str, Any]],
+        image: str | Path | None,
+    ) -> RecognitionResult:
+        """Read the drawing on this machine, and only then fall back to templates.
+
+        Templates are a poor last resort: they can only recognise a drawing
+        someone already seeded, and an unseeded database answers every capture
+        the same way. A local vision model at least looks at the picture.
+        """
+        if image is not None and local_vision.available():
+            try:
+                ranked = local_vision.rank_tags(catalog, image=image)
+            except Exception as exc:  # noqa: BLE001 - templates are the next fallback
+                print(f"[recognize] local vision failed: {exc!r}")
+            else:
+                result = self._from_gemini(ranked.get("rankings") or [], feature_matches)
+                if result.candidates:
+                    for item in result.candidates:
+                        item.source = "local"
+                    # Flagged as a fallback so the caretaker view and the logs do
+                    # not present a local guess with Gemini's authority.
+                    result.fallback_used = True
+                    result.spoken = result.candidates[0].spoken
+                    result.seen = str(ranked.get("seen") or "").strip()
+                    print(
+                        f"[recognize] local   {result.top_tag!r} from "
+                        f"{local_vision.model_name()}: {result.seen or 'no description'}"
+                    )
+                    return result
+                print("[recognize] local vision returned nothing usable")
+        return self._from_features(ranked_features)
+
+    def _settle_digit(
+        self,
+        result: RecognitionResult,
+        local: stroke_geometry.DigitGuess,
+    ) -> None:
+        """Reconcile the digit Gemini reported with what the strokes measure.
+
+        Geometry is the authority on whether a drawing can be a digit at all, so
+        a veto wins: that fires when the main stroke closes on itself or there
+        are too many strokes, which a cup or a face does and a character never
+        does. Otherwise geometry only ever adds a digit Gemini left empty, which
+        is the common failure now that the digit is one field in a prompt
+        otherwise devoted to intents.
+        """
+        if result.digit and local.veto:
+            print(f"[recognize] digit   dropped Gemini {result.digit}: {local.reason}")
+            result.digit = ""
+            result.digit_reason = local.reason
+            return
+        if result.digit:
+            result.digit_source = "gemini"
+            result.digit_reason = "reported by Gemini"
+            return
+        if local.assists:
+            print(f"[recognize] digit   {local.digit} from geometry: {local.reason}")
+            result.digit = local.digit
+            result.digit_source = "geometry"
+            result.digit_reason = local.reason
+            return
+        result.digit_reason = local.reason
 
     def _from_gemini(
         self,

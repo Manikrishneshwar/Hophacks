@@ -442,7 +442,7 @@ async def analyse(record: CaptureRecord, strokes: list[dict[str, Any]]) -> None:
     image = config.CAPTURE_DIR / record.png
 
     if shape_game.get(record.session_id):
-        await play_round(record, image)
+        await play_round(record, image, payload)
         return
 
     try:
@@ -488,13 +488,17 @@ async def offer_game(record: CaptureRecord, result: pipeline.CaptureResult) -> N
     await push_caretaker(log, result, confirmed=True)
 
 
-async def play_round(record: CaptureRecord, image: Any) -> None:
+async def play_round(
+    record: CaptureRecord,
+    image: Any,
+    payload: dict[str, Any] | None = None,
+) -> None:
     game = shape_game.get(record.session_id)
     if game is None:
         return
     log = CaretakerLog(record, kind="game")
     target = game.target
-    graded = await asyncio.to_thread(pipeline.grade_shape, image, target)
+    graded = await asyncio.to_thread(pipeline.grade_shape, image, target, payload)
     if graded["match"]:
         spoken, done = shape_game.succeed(record.session_id)
         print(f"[game] {record.session_id} matched {target}")
@@ -585,11 +589,16 @@ async def converse(record: CaptureRecord, result: pipeline.CaptureResult) -> Non
         if (result.detail or "").lower() in {"call", "caretaker"}:
             await place_caretaker_call(record, result, log=log)
         else:
+            seen = ""
+            if result.recognition is not None:
+                seen = getattr(result.recognition, "seen", "") or ""
             closing = await asyncio.to_thread(
                 pipeline.closing_for,
                 result.tag_id,
                 detail=result.detail,
                 spoken=result.text,
+                seen=seen,
+                image=config.CAPTURE_DIR / record.png,
             )
             if closing:
                 print(f"[analysis] {record.id} closing: {closing}")
@@ -630,7 +639,7 @@ async def refine_details(
     if not pipeline.needs_followup(result.tag_id, result.text, result.detail):
         return
 
-    if pipeline.is_specific(result.detail, result.tag_id):
+    if pipeline.refines_the_need(result.detail, result.tag_id):
         followups = [pipeline.followup_from_detail(result.detail)]
     else:
         seen = ""

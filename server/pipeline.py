@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -30,9 +31,16 @@ PHRASES = {
     "food": "I would like something to eat, please.",
     "help": "I need help, please.",
     "rest": "I would like to rest, please.",
+    "story": "That looks like a little scene. Want a short story?",
+    "talk": "That's a smile. Want some company?",
     "yes": "Yes.",
     "no": "No.",
 }
+
+# Drawings that are company, not a care need. After a yes the pad tells a
+# short story or says something kind, instead of fetching water.
+COMPANION_TAGS = frozenset({"story", "talk"})
+COMPANION_TIMEOUT_S = 12.0
 
 MAX_GUESSES = 3
 MAX_FOLLOWUPS = 2
@@ -49,11 +57,23 @@ FOLLOWUP_BLOCKLIST = {
 NAMED_DRINKS = ("water", "tea", "coffee", "juice")
 NAMED_FOODS = ("apple", "pizza", "soup", "sandwich", "toast", "oatmeal")
 
+# Only these have varieties, so only these can be refined by `detail`. For help
+# and rest the detail describes the drawing, not the need.
+DETAIL_REFINABLE_TAGS = frozenset({"food", "water"})
+
+# Take no article, so "Is that soup?" rather than "Is that a soup?".
+MASS_NOUNS = frozenset(
+    {"soup", "water", "tea", "coffee", "juice", "milk", "toast", "oatmeal",
+     "rice", "bread", "food", "fruit", "cereal", "porridge", "help", "rest"}
+)
+
 FALLBACK_CLOSINGS = {
     "food": "I'll get that for you.",
     "water": "I'll get you some water.",
     "help": "Someone is on the way.",
     "rest": "Rest easy.",
+    "story": "Once the hills sat still under a small sun, and that was enough for a quiet afternoon.",
+    "talk": "I'm glad you drew that. I'm here with you.",
 }
 
 
@@ -90,6 +110,32 @@ def default_followups(tag_id: str | None) -> list[dict[str, str]]:
             {"spoken": "Do you need the bathroom?", "question": "Bathroom?", "detail": "bathroom"},
         ]
     return []
+
+
+def with_article(name: str) -> str:
+    """Turn 'sandwich' into 'a sandwich', and leave mass nouns such as soup alone.
+
+    Without this a detail of "hand" produced "Is that hand?" on the pad.
+    """
+    token = (name or "").strip()
+    if not token or token.lower() in MASS_NOUNS:
+        return token
+    return f"{'an' if token[0].lower() in 'aeiou' else 'a'} {token}"
+
+
+def refines_the_need(detail: str | None, tag_id: str | None = None) -> bool:
+    """Whether `detail` is a variety of the need, rather than a description of the ink.
+
+    `detail` carries two unrelated things. For food and water it is the kind of
+    thing wanted, so "Is that soup?" is a question worth asking. For help and rest
+    there is no kind: the model fills it with whatever it thought the drawing
+    showed, which is how confirming "I need help" led to "Is that hand?" when the
+    drawing was a telephone. Those tags have written follow-ups already, and they
+    are the ones that matter, since help offers to call the caretaker.
+    """
+    if tag_id not in DETAIL_REFINABLE_TAGS:
+        return False
+    return is_specific(detail, tag_id)
 
 
 def is_specific(detail: str | None, tag_id: str | None = None) -> bool:
@@ -214,7 +260,34 @@ def _get_recognizer():
         from recognize import IntentRecognizer
 
         _recognizer = IntentRecognizer(root=config.ROOT)
+        _warm_local_vision()
     return _recognizer
+
+
+def _warm_local_vision() -> None:
+    """Pull the local fallback model into VRAM off the request path.
+
+    The load costs about 27s, which a capture cannot wait for, so it happens on
+    a background thread at startup and the model then stays resident. A capture
+    arriving before the load finishes just queues behind it.
+    """
+    if str(config.ROOT) not in sys.path:
+        sys.path.insert(0, str(config.ROOT))
+    import local_vision
+
+    if not local_vision.available():
+        return
+    print(f"[pipeline] warming local vision model {local_vision.model_name()}")
+    threading.Thread(target=local_vision.warm, name="local-vision-warm", daemon=True).start()
+
+
+def _geometry():
+    """The root-level stroke geometry module, imported the same way."""
+    if str(config.ROOT) not in sys.path:
+        sys.path.insert(0, str(config.ROOT))
+    import stroke_geometry
+
+    return stroke_geometry
 
 
 def _clean_spoken(text: str) -> str:
@@ -228,6 +301,18 @@ def _clean_spoken(text: str) -> str:
     if line.endswith("?"):
         line = line[:-1].rstrip() + "."
     return line[:140]
+
+
+def _clean_story(text: str) -> str:
+    """A companion reply can be a few sentences; the usual closer cannot.
+
+    `_clean_spoken` keeps only the first sentence and 140 characters, which
+    would cut a story off at 'Once the hills sat still.'
+    """
+    line = " ".join((text or "").split())
+    if not line:
+        return ""
+    return line[:480]
 
 
 def phrase_for(tag_id: str | None, label: str | None = None) -> str:
@@ -246,7 +331,11 @@ def spoken_for(
     image: Path | None = None,
     prepared: str = "",
 ) -> str:
-    cleaned = _clean_spoken(prepared)
+    cleaned = (
+        " ".join((prepared or "").split())[:160]
+        if tag_id in COMPANION_TAGS
+        else _clean_spoken(prepared)
+    )
     if cleaned:
         return cleaned
     fallback = phrase_for(tag_id, label)
@@ -304,10 +393,14 @@ def follow_ups_for(
 
 
 def _spoken_text(result: Any) -> str:
-    cleaned = _clean_spoken(getattr(result, "spoken", "") or "")
+    raw = getattr(result, "spoken", "") or ""
+    tag_id = getattr(result, "top_tag", None)
+    if tag_id in COMPANION_TAGS:
+        cleaned = " ".join(raw.split())[:160]
+    else:
+        cleaned = _clean_spoken(raw)
     if cleaned:
         return cleaned
-    tag_id = result.top_tag
     label = None
     for candidate in result.candidates:
         if candidate.tag_id == tag_id:
@@ -316,13 +409,47 @@ def _spoken_text(result: Any) -> str:
     return phrase_for(tag_id, label)
 
 
+def companion_for(
+    tag_id: str | None,
+    *,
+    seen: str = "",
+    detail: str | None = None,
+    image: Path | None = None,
+) -> str:
+    """A short story or a kind remark after they confirm an open drawing."""
+    fallback = fallback_closing(tag_id, detail)
+    if tag_id not in COMPANION_TAGS:
+        return fallback
+    if not config.RECOGNITION_ENABLED:
+        return fallback
+    pool = ThreadPoolExecutor(max_workers=1)
+    try:
+        text = pool.submit(
+            _get_recognizer().model.companion_for_drawing,
+            tag_id,
+            seen=seen,
+            detail=detail or "",
+            image=image,
+        ).result(timeout=COMPANION_TIMEOUT_S)
+        return _clean_story(text) or fallback
+    except Exception as exc:  # noqa: BLE001
+        print(f"[pipeline] companion for {tag_id} failed: {exc!r}")
+        return fallback
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+
+
 def closing_for(
     tag_id: str | None,
     *,
     detail: str | None = None,
     spoken: str = "",
+    seen: str = "",
+    image: Path | None = None,
 ) -> str:
     """Caregiver wrap-up after a yes. Local fallback if Gemini is slow or down."""
+    if tag_id in COMPANION_TAGS:
+        return companion_for(tag_id, seen=seen, detail=detail, image=image)
     fallback = fallback_closing(tag_id, detail)
     if not tag_id or not config.RECOGNITION_ENABLED:
         return fallback if tag_id else ""
@@ -351,7 +478,7 @@ def closing_for(
 def followup_from_detail(detail: str) -> dict[str, str]:
     name = (detail or "").strip()
     return {
-        "spoken": f"Is that {name}?",
+        "spoken": f"Is that {with_article(name)}?",
         "question": question_for(name),
         "detail": name.lower(),
     }
@@ -375,13 +502,28 @@ def patch_graphs(*, capture_id: str, journal: str) -> None:
     _get_recognizer().patch_graphs(capture_id=capture_id, journal=journal)
 
 
-def grade_shape(image: Path, target: str) -> dict[str, Any]:
-    """Ask Gemini if the drawing matches the prompted shape."""
+def grade_shape(image: Path, target: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Ask Gemini if the drawing matches the prompted shape.
+
+    Geometry grades it instead whenever Gemini is off, slow or broken. Without
+    that the game could be started but never won: every attempt came back a
+    miss, so the person kept being told to try again.
+    """
     from . import shape_game
 
-    fallback = {"match": False, "seen": "", "spoken": shape_game.NUDGES.get(target, "Try again.")}
+    nudge = {"match": False, "seen": "", "spoken": shape_game.NUDGES.get(target, "Try again.")}
+
+    def locally() -> dict[str, Any]:
+        strokes = (data or {}).get("polylines") or (data or {}).get("points")
+        if not strokes:
+            return nudge
+        graded = _geometry().grade(strokes, target)
+        print(f"[pipeline] shape   {target}: {graded['seen'] or 'unreadable'} "
+              f"match={graded['match']} (geometry)")
+        return graded
+
     if not config.RECOGNITION_ENABLED:
-        return fallback
+        return locally()
     timeout = float(config.GEMINI_TIMEOUT_S)
     pool = ThreadPoolExecutor(max_workers=1)
     try:
@@ -396,7 +538,7 @@ def grade_shape(image: Path, target: str) -> dict[str, Any]:
         }
     except Exception as exc:  # noqa: BLE001
         print(f"[pipeline] grade_shape failed: {exc!r}")
-        return fallback
+        return locally()
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
 
@@ -441,7 +583,8 @@ def process_capture(image: Path, data: dict[str, Any]) -> CaptureResult | str | 
 
     digit = getattr(result, "digit", "") or ""
     if digit in {"1", "2"}:
-        print(f"[pipeline] digit   {digit}  (shape game)")
+        source = getattr(result, "digit_source", "") or "unknown"
+        print(f"[pipeline] digit   {digit} via {source}  (shape game)")
         return CaptureResult(
             text="Let's play a drawing game.",
             tag_id="play",

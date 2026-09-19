@@ -303,7 +303,18 @@ Set these in the environment before starting:
 | `INK_CONFIRM_TIMEOUT_S` | `60` | How long a spoken sentence waits to be confirmed |
 | `INK_SPEECH` | `1` | `0` skips synthesis; the tablet still speaks the text |
 | `INK_RECOGNITION` | `1` | `0` skips Gemini ranking and speaks `SAMPLE_TEXT` |
-| `GEMINI_TIMEOUT_S` | `15` | Seconds to wait on ranking before local templates answer |
+| `GEMINI_TIMEOUT_S` | `15` | Budget for one call, shared across every model tried |
+| `GEMINI_MODELS` | `gemini-3.5-flash-lite,gemini-3.6-flash` | Tried in order until one answers |
+| `GEMINI_MODEL` | unset | Pins the primary; the defaults stay behind it |
+| `GEMINI_SLOW_TIMEOUT_S` | `120` | Budget for background work, where nobody is waiting |
+| `XAI_API_KEY` | unset | Grok, tried after every Gemini model refuses |
+| `XAI_FALLBACK` | `1` | `0` skips xAI even with a key set |
+| `XAI_MODEL` | `grok-4.20-0309-non-reasoning` | Fast enough for the live budget |
+| `XAI_SLOW_MODEL` | `grok-4.6` | Background work only; better, but 42-86s |
+| `LOCAL_VISION` | `1` | `0` skips the on-machine model and goes straight to templates |
+| `LOCAL_VISION_MODEL` | `gemma3:12b` | Ollama model read when every Gemini model fails |
+| `LOCAL_VISION_TIMEOUT_S` | `25` | Budget for the local read, separate from Gemini's |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Where the Ollama daemon listens |
 | `ELEVENLABS_API_KEY` | unset | Without it the tablet's own voice is used |
 | `ELEVENLABS_VOICE_ID` | Rachel | Any premade voice; the shared library needs a paid plan |
 | `ELEVENLABS_MODEL` | `eleven_flash_v2_5` | `eleven_multilingual_v2` for quality over cost |
@@ -321,6 +332,10 @@ overridden from the shell.
 .\.venv\Scripts\python.exe scripts\smoothing_test.py # tremor filter effectiveness
 .\.venv\Scripts\python.exe scripts\pipeline_test.py  # what step 2 receives
 .\.venv\Scripts\python.exe scripts\recognize_test.py # ranking harness, no Gemini credits
+.\.venv\Scripts\python.exe scripts\digit_test.py     # geometric 1 / 2 and shape grading
+.\.venv\Scripts\python.exe scripts\model_chain_test.py # model fallback, no Gemini credits
+.\.venv\Scripts\python.exe scripts\local_vision_test.py # on-machine fallback, no Ollama needed
+.\.venv\Scripts\python.exe scripts\xai_chain_test.py   # the Grok tier, stubbed, no credits
 .\.venv\Scripts\python.exe scripts\eval_benchmark.py selftest # catalog, scoring, HTML report
 .\.venv\Scripts\python.exe scripts\speech_test.py    # synthesis, caching, fallback, confirm
 .\.venv\Scripts\python.exe scripts\caretaker_test.py # caregiver phone gets image + yes/no
@@ -346,18 +361,152 @@ web/viewer.html     optional desktop view
 web/caretaker.html  caregiver phone feed and alerts
 web/brain.html      second-brain memory graph
 memory_graph.py     nodes and weighted links behind /brain
+stroke_geometry.py  reads a 1 or 2, and grades game shapes, without a model
+local_vision.py     reads the drawing on this machine when Gemini is unreachable
+xai_backend.py      Grok as a second vendor between Gemini and the local model
 ```
 
 ## Intent recognition and memory
 
 Captured strokes and the PNG go through Gemini first. It ranks tags from the
 drawing (history is only a weak prior) and writes the sentence spoken on the
-pad, naming the object when it can see one. Local templates in
-`drawings_db.json` are compared in the background and used only if the API
-faults or exceeds `GEMINI_TIMEOUT_S`. A no tap retries the next guess. After a
+pad, naming the object when it can see one. If every Gemini model faults, xAI's
+Grok is asked the same question; if that fails too, a vision model on this
+machine reads the PNG; and only if that is unavailable do the stroke templates in
+`drawings_db.json` answer. The last tier needs no key and no network at all.
+
+Which one answered is recorded, as `source` on each candidate (`gemini`, `xai`,
+`local`, `feature_fallback`) and as `fallback_used`, so a weaker reading is never
+presented with Gemini's authority.
+
+Every Gemini call walks a chain of models, `gemini-3.5-flash-lite` then
+`gemini-3.6-flash`, stopping at the first that answers. The lite model leads on
+availability rather than paper quality: `gemini-3.8-flash` allows only 20
+free-tier requests a day, which one demo session spends, and a model that has
+stopped answering ranks nothing at all. On the three labelled drawings in
+`eval/` the lite model gets all three intents right, though it is vaguer about
+the specific object, which the follow-up questions exist to pin down.
+
+The chain also covers a model being withdrawn or overloaded, which happens:
+`gemini-2.5-flash` is still listed by the API but 404s for new keys, and flash
+models return 503 under load. A rejected key is not retried down the chain,
+since it would fail identically every time. The whole chain shares the one `GEMINI_TIMEOUT_S` budget, so the pad
+never waits longer than a single attempt used to. Because the API refuses any
+per-request deadline under 10s, at the default 15s the primary gets the full
+budget and the fallback covers quick refusals; raise the budget past 20s and the
+two are split evenly, which also rescues a hang. `scripts\gemini_key_test.py`
+pings every model in the chain and says which ones your key can use.
+
+### A second vendor before falling back locally
+
+`XAI_API_KEY` adds xAI's Grok between Gemini and the on-machine model. It is a
+different vendor on a different quota, and it hooks into the shared `_generate`,
+so every call benefits rather than ranking alone. It is also strong enough to be
+handed the real prompt with all of its patient context, which the local model is
+not. A missing Gemini key is no longer fatal while this is configured.
+
+Model choice here is about latency. Measured on the `eval/` drawings with the
+real ranking prompt:
+
+| Model | Correct | Time |
+| --- | --- | --- |
+| `grok-4.6` | 3/3 | 42-86s |
+| `grok-4.20-0309-non-reasoning` | 2/3 | 2.3-2.6s |
+| `grok-4.3` | 0/3 | 13-18s |
+
+The pad has to speak inside `GEMINI_TIMEOUT_S`, so the fast one serves captures
+even though `grok-4.6` is plainly better at the task, and is the only model
+anywhere that reads the pizza drawing correctly. `grok-4.6` is used instead for
+the two calls nobody waits on, the end-of-day compression and the memory-graph
+patch, which get `GEMINI_SLOW_TIMEOUT_S` because they run after the pad has
+already spoken. `python xai_backend.py check` confirms the key and lists models.
+
+### Reading the drawing on this machine
+
+The free tier is small enough that one demo can spend it, so when every Gemini
+model has refused, `local_vision.py` sends the same PNG to a vision model served
+by [Ollama](https://ollama.com) on this machine. Install it without root and pull
+the model:
+
+```bash
+curl -fL https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tar.zst \
+  -o /tmp/ollama.tar.zst
+tar --zstd -xf /tmp/ollama.tar.zst -C ~/.local
+~/.local/bin/ollama serve &
+~/.local/bin/ollama pull gemma3:12b
+python local_vision.py check
+```
+
+`gemma3:12b` needs about 8GB of VRAM and was picked by measurement on the three
+labelled drawings in `eval/`:
+
+| Model | Correct | Warm | Notes |
+| --- | --- | --- | --- |
+| `gemma3:12b` | 2/3 | 2.0s | Names what it sees, so `detail` is usually filled |
+| `gemma4` | 2/3 | 1.2s | Fastest, but vague and usually leaves `detail` empty |
+| `qwen2.5vl:7b` | 1/3 | 4.9s | Read the cup as a bowl |
+
+All three fit a 12GB card. `gemma4` is quicker but describes a cup as "a finger
+drawing", and `detail` is what lets the pad name the object and decide whether a
+follow-up is needed, so the slower one wins. With no GPU this whole tier is far
+slower than the budget allows and `LOCAL_VISION=0` is the better setting.
+
+Three things about this tier are deliberate. It does not reuse the prompt
+`rank_drawing_tags` sends: given the full 4.5KB of patient context a 7B-12B model
+stops looking at the picture and answers from the history, so the local prompt is
+cut back to the tag list and the image, losing history as a tie-breaker. Its
+guesses carry a low likelihood and are flagged `fallback_used`, because the model
+is right often enough to be worth asking about and wrong often enough that the
+pad must not assert: it tagged the cross drawing `help` while describing it as
+"a snake". And the sentence it writes is only spoken if it survives
+`usable_sentence`, which rejects the placeholder echoes these models produce
+(gemma4 returned the schema's own `"I would like ..., please."` verbatim); a
+rejected one falls back to the curated phrase for the tag.
+
+Resist enriching the local prompt without measuring. Two rewrites that read
+better both lost accuracy: building the per-tag hints from the catalog's own
+descriptions and aliases repeats "cup" three times for water and pushed gemma3 to
+2/3 down to 1/3, and offering an "unsure" tag made gemma4 decline all three
+drawings, including a cup it had just described correctly.
+
+The model stays resident (`keep_alive: -1`) and is warmed on a background thread
+when the recogniser is first built, because the initial 8GB load into VRAM takes
+around 27s and no capture can wait that long.
+
+### Seeding the templates
+
+`drawings_db.json` is gitignored, so it starts empty on a fresh clone and the
+bottom tier can recognise nothing at all. Fill it once:
+
+```bash
+python scripts/seed_drawings.py
+```
+
+That takes the human-checked captures from `eval/catalog.json` for the tags they
+cover and draws plain outlines for the rest. The synthetic ones are guesses at a
+shape and much weaker than a real drawing; record real ones through the pad and
+re-run to replace them. Re-running only updates, never duplicates.
+
+A no tap retries the next guess. After a
 yes, follow-ups only run when the request is still generic (water does not
 ask tea; help offers to call the named caretaker). Then the pad speaks a
 caregiver closing (`I'll get you some water.`).
+
+A drawing that is not a care need is no longer forced into food, water, help,
+or rest. Mountains, a sun, a book, or a little scene is `story`; a smile, a
+face, or a heart is `talk`. The pad offers a short story or some company, and
+after a yes it actually tells one. That is what the landscape drawings were
+asking for when they used to come back as "I would like to lie down."
+
+A handwritten 1 or 2 starts the drawing game, and that one is measured rather
+than asked about. `stroke_geometry.py` reads a 1 as a single tall upright
+near-straight stroke and a 2 as a single open curve running from the top down
+to a left-to-right baseline. A clear one skips the API call entirely, so the
+game starts instantly and works with no key at all; a marginal one lets Gemini
+rank as usual, and geometry then either supplies a digit Gemini missed or
+refuses one it claimed on something no character can be, such as a closed loop.
+Each attempt in the game is graded the same way when the API is unavailable, on
+corner count and circularity.
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt

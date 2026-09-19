@@ -78,6 +78,11 @@ def circle_strokes():
     ]
 
 
+def one_strokes():
+    """A vertical downstroke, so stroke geometry agrees it could be a 1."""
+    return [[[0.0, i * 2.0] for i in range(80)]]
+
+
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="ink-rank-"))
     query = circle_strokes()
@@ -165,12 +170,30 @@ def main() -> int:
         fail("named pizza should not ask soup")
     if not pipeline.needs_followup("help", "I need help, please."):
         fail("generic help should offer to call the caretaker")
+    if pipeline.needs_followup("story", "That looks like mountains. Want a short story?"):
+        fail("a story drawing should not ask soup or tea")
+    if pipeline.needs_followup("talk", "That's a smile. Want some company?"):
+        fail("company should not get care-need follow-ups")
+    story = pipeline.fallback_closing("story")
+    if "hills" not in story.lower():
+        fail(f"story fallback should be a short tale, got {story!r}")
+    kept = pipeline._clean_story("Once the hills sat still. The sun came up. That was enough.")
+    if kept.count(".") < 3:
+        fail(f"a story must keep more than one sentence, got {kept!r}")
     if pipeline._followup_allowed("food", "tea"):
         fail("food follow-ups must not include tea")
     if pipeline._followup_allowed("water", "tea", "I would like a glass of water, please."):
         fail("water follow-ups must not include tea after water")
     if not pipeline._followup_allowed("food", "pizza"):
         fail("food follow-ups should allow pizza")
+    if not pipeline.refines_the_need("pizza", "food"):
+        fail("pizza should refine a food request")
+    if pipeline.refines_the_need("hand", "help"):
+        fail("help detail describes the drawing, not a variety of the need")
+    if pipeline.followup_from_detail("hand")["spoken"] != "Is that a hand?":
+        fail(f"expected an article, got {pipeline.followup_from_detail('hand')['spoken']!r}")
+    if pipeline.followup_from_detail("soup")["spoken"] != "Is that soup?":
+        fail(f"soup should stay a mass noun, got {pipeline.followup_from_detail('soup')['spoken']!r}")
     call = pipeline.caretaker_followup()
     if call["detail"] != "call" or "Jordan" not in call["question"]:
         fail(f"help should offer to call the caretaker, got {call}")
@@ -219,10 +242,43 @@ def main() -> int:
         digit="1",
     )
     recognizer = make_recognizer(tmp, digit_fake)
-    result = recognizer.interpret(query, update_memory=False)
+    result = recognizer.interpret(one_strokes(), update_memory=False)
     if result.digit != "1":
         fail(f"expected digit 1, got {result.digit!r}")
     print("ok     handwritten 1 is detected without fusing templates")
+
+    # The same claimed digit over a closed loop is stroke geometry's one veto:
+    # a cup or an apple cannot be a character however the model reads the PNG.
+    # The leftover ranking is discarded too, because the model was answering
+    # the digit question, not the intent one.
+    recognizer = make_recognizer(tmp, digit_fake)
+    result = recognizer.interpret(query, update_memory=False)
+    if result.digit != "":
+        fail(f"a circle should veto a claimed digit, got {result.digit!r}")
+    if result.top_tag == "food" and not result.fallback_used:
+        fail("a vetoed digit must not keep the leftover Gemini ranking")
+    print("ok     a closed loop vetoes a claimed digit")
+
+    weak = FakeModel(
+        rankings=[
+            {
+                "tag_id": "water",
+                "likelihood": 0.05,
+                "reason": "a digit 2",
+                "spoken": "I would like a glass of water, please.",
+                "detail": "water",
+            }
+        ],
+        spoken="I would like a glass of water, please.",
+        digit="",
+    )
+    recognizer = make_recognizer(tmp, weak)
+    result = recognizer.interpret(query, update_memory=False)
+    if not result.fallback_used:
+        fail("a 0.05 ranking should fall through instead of being spoken")
+    if result.top_tag == "water" and result.candidates and result.candidates[0].source == "gemini":
+        fail("the pad must not speak a near-zero Gemini guess")
+    print("ok     a near-zero ranking falls through")
 
     shutil.rmtree(tmp, ignore_errors=True)
     print("all recognize harness checks passed")

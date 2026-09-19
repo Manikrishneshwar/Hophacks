@@ -54,6 +54,24 @@
       "drawing_ids": ["xmark"],
       "created_at": "2026-09-19T00:00:00+00:00",
       "updated_at": "2026-09-19T00:00:00+00:00"
+    },
+    "story": {
+      "id": "story",
+      "label": "story",
+      "description": "Drew scenery, a book, an animal, or a scene and would like a short story about it",
+      "aliases": ["book", "scene", "mountain", "sun", "tree", "house", "animal"],
+      "drawing_ids": [],
+      "created_at": "2026-09-19T00:00:00+00:00",
+      "updated_at": "2026-09-19T00:00:00+00:00"
+    },
+    "talk": {
+      "id": "talk",
+      "label": "talk",
+      "description": "Drew a face, a person, or a heart and wants company",
+      "aliases": ["smile", "face", "friend", "heart"],
+      "drawing_ids": [],
+      "created_at": "2026-09-19T00:00:00+00:00",
+      "updated_at": "2026-09-19T00:00:00+00:00"
     }
   }
 }
