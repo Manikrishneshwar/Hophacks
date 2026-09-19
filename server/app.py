@@ -4,6 +4,7 @@ Routes:
     GET  /            redirect to the tablet canvas
     GET  /canvas      the tablet drawing surface
     GET  /viewer      optional desktop view; nothing depends on it being open
+    GET  /brain       second-brain memory graph for judges and caregivers
     POST /api/capture receive a finished drawing
     GET  /api/config  client settings (idle timeout, background)
     GET  /api/captures recent capture metadata
@@ -16,6 +17,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
+from datetime import date
 from typing import Any
 
 from uuid import uuid4
@@ -37,6 +40,13 @@ def schedule(coro) -> None:
     _background.add(task)
     task.add_done_callback(_background.discard)
 
+
+# The recognition and memory modules live at the repository root rather than in
+# this package, so the root has to be importable however the server was started.
+if str(config.ROOT) not in sys.path:
+    sys.path.insert(0, str(config.ROOT))
+from memory_graph import MemoryGraph  # noqa: E402
+
 app = FastAPI(title="Ink Pipeline")
 
 CLIENT_VERSION = "5"
@@ -51,7 +61,7 @@ async def no_stale_frontend(request, call_next):
     healthy while running code that predates the restart.
     """
     response = await call_next(request)
-    if request.url.path.startswith("/static") or request.url.path in ("/", "/canvas", "/viewer"):
+    if request.url.path.startswith("/static") or request.url.path in ("/", "/canvas", "/viewer", "/brain"):
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
     return response
 
@@ -153,6 +163,56 @@ async def canvas_page() -> FileResponse:
 @app.get("/viewer")
 async def viewer_page() -> FileResponse:
     return FileResponse(config.WEB_DIR / "viewer.html")
+
+
+@app.get("/brain")
+async def brain_page() -> FileResponse:
+    return FileResponse(config.WEB_DIR / "brain.html")
+
+
+def _history_graph() -> MemoryGraph:
+    graph = MemoryGraph(config.ROOT / "memory_graph.json")
+    graph.ensure_seed(config.ROOT)
+    return graph
+
+
+def _daily_graph() -> MemoryGraph:
+    day = date.today()
+    path = config.ROOT / "monthly_events" / day.strftime("%Y-%m") / day.isoformat() / "daily_graph.json"
+    graph = MemoryGraph(path)
+    graph.ensure_seed(config.ROOT)
+    return graph
+
+
+@app.get("/api/memory-graph")
+async def memory_graph_payload(scope: str = "history") -> dict[str, Any]:
+    if scope == "daily":
+        graph = _daily_graph()
+        payload = graph.vis_payload(on=date.today())
+        if payload["stats"]["by_type"].get("event", 0) < 1:
+            graph.seed_demo_day()
+            payload = graph.vis_payload(on=date.today())
+        payload["scope"] = "daily"
+        return payload
+    graph = _history_graph()
+    payload = graph.vis_payload()
+    if payload["stats"]["by_type"].get("event", 0) < 3:
+        graph.seed_demo_week()
+        payload = graph.vis_payload()
+    payload["scope"] = "history"
+    return payload
+
+
+@app.post("/api/memory-graph/demo")
+async def memory_graph_demo() -> dict[str, Any]:
+    history = _history_graph()
+    daily = _daily_graph()
+    history.seed_demo_week()
+    daily.seed_demo_day()
+    return {
+        "daily": daily.vis_payload(on=date.today()),
+        "history": history.vis_payload(),
+    }
 
 
 @app.get("/api/config")

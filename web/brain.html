@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second brain</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="brain">
+  <header>
+    <span class="dot on"></span>
+    <h1>Second brain</h1>
+    <span class="meta" id="meta">scroll zoom · drag move · shift-drag or right-drag rotate · double-click reset</span>
+    <span class="spacer"></span>
+    <button type="button" id="demo">Load sample week</button>
+    <a class="nav" href="/viewer">Ink viewer</a>
+  </header>
+
+  <div class="brain-layout">
+    <div class="brain-graphs">
+      <section class="graph-pane">
+        <h3>Today <span id="daily-meta" class="meta"></span>
+          <span class="graph-tools">
+            <button type="button" data-target="daily" data-deg="-20" title="Rotate left">⟲</button>
+            <button type="button" data-target="daily" data-deg="20" title="Rotate right">⟳</button>
+          </span>
+        </h3>
+        <div class="graph-host"><canvas id="daily-canvas"></canvas></div>
+      </section>
+      <section class="graph-pane">
+        <h3>History <span id="history-meta" class="meta"></span>
+          <span class="graph-tools">
+            <button type="button" data-target="history" data-deg="-20" title="Rotate left">⟲</button>
+            <button type="button" data-target="history" data-deg="20" title="Rotate right">⟳</button>
+          </span>
+        </h3>
+        <div class="graph-host"><canvas id="history-canvas"></canvas></div>
+      </section>
+    </div>
+    <aside id="side">
+      <p class="kicker">Selected</p>
+      <h2 id="side-title">Waiting</h2>
+      <p id="side-type" class="meta">Click a node</p>
+      <dl id="side-facts"></dl>
+      <p class="kicker">Neighbors</p>
+      <div id="side-links"></div>
+    </aside>
+  </div>
+
+  <footer id="legend"></footer>
+
+  <script src="/static/graph.js"></script>
+  <script src="/static/brain.js"></script>
+</body>
+</html>

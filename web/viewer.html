@@ -12,16 +12,27 @@
     <h1>Ink viewer</h1>
     <span class="meta" id="meta">waiting for the tablet</span>
     <span class="spacer"></span>
+    <a class="nav" href="/brain">Second brain</a>
     <span id="qa" class="qa" hidden></span>
   </header>
 
-  <div id="live-wrap">
-    <canvas id="live" width="1180" height="820"></canvas>
-    <div id="live-empty">Nothing being drawn right now.</div>
+  <div class="viewer-main">
+    <div id="live-wrap">
+      <canvas id="live" width="1180" height="820"></canvas>
+      <div id="live-empty">Nothing being drawn right now.</div>
+    </div>
+    <section id="brain-panel">
+      <div class="brain-panel-head">
+        <strong>Second brain</strong>
+        <a href="/brain">Open full graph</a>
+      </div>
+      <canvas id="brain-mini"></canvas>
+    </section>
   </div>
 
   <div id="gallery"><div class="empty">No captures yet.</div></div>
 
+  <script src="/static/graph.js"></script>
   <script src="/static/viewer.js"></script>
 </body>
 </html>

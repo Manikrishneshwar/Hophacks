@@ -61,6 +61,10 @@ The desktop view at <http://localhost:8000/viewer> mirrors strokes live and
 shows previous captures. It is entirely optional — captures are stored whether
 or not it is open.
 
+The second-brain view at <http://localhost:8000/brain> is the patient memory
+graph: people, intents, drawings, and days linked together. Use **Load sample
+week** if you want a populated graph for judges before any live captures.
+
 ## Feedback while drawing
 
 The tablet plays a soft tone when a stroke starts and a brighter, shorter one
@@ -324,14 +328,46 @@ server/pipeline.py  the step 2 hook: drawing in, text out
 server/speech.py    ElevenLabs synthesis and its on-disk cache
 web/canvas.html     tablet drawing surface
 web/viewer.html     optional desktop view
+web/brain.html      second-brain memory graph
+memory_graph.py     nodes and weighted links behind /brain
 ```
+
+## Intent recognition and memory
+
+Captured strokes (and optional PNG) go through an eyes-free recognition layer
+for people who can only move one or two fingers. Offline feature compare always
+runs against stored drawing templates. Gemini then ranks the top 5 tags from
+`drawing_tags.json`. Those ranks get decreasing weights and are multiplied by
+the feature score:
+
+```text
+final_weight = rank_weight × llm_likelihood × feature_score
+```
+
+If the API faults or times out, the feature scores alone are the answer. A
+memory layer then appends today's note under `monthly_events/` and, at end of
+day, rewrites `compressed_history.txt`.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+# add GEMINI_API_KEY to .env
+
+.\.venv\Scripts\python.exe recognize.py demo --offline
+.\.venv\Scripts\python.exe recognize.py interpret examples/sample_strokes.json
+.\.venv\Scripts\python.exe gemini_session.py chat "I am thirsty"
+.\.venv\Scripts\python.exe gemini_session.py end-of-day
+```
+
+Stroke files from `data/captures/*.json` work here: each point only needs `x`
+and `y`. Full design notes are in [docs/recognition.md](docs/recognition.md).
 
 ## Still to come
 
-The real API call inside `process_capture`, replacing `SAMPLE_TEXT`; everything
-downstream of it — speech, display, confirmation — already works against that
-return value.
+The capture path does not call the recogniser yet: `process_capture` still
+returns `SAMPLE_TEXT`, and `IntentRecognizer().interpret(strokes, image=...)` is
+what belongs in its place. Everything downstream of that return value — speech,
+display on the canvas, the confirming tap — already works.
 
-Then the database. `CaptureRecord.analysis` is the field the returned text
+Then the database. `CaptureRecord.analysis` is the field the recognition result
 belongs in, and `CaptureStore.sinks` is where a Postgres/TigerData sink plugs in
 without touching the capture path.
