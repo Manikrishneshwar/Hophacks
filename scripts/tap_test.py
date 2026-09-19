@@ -157,22 +157,39 @@ def main() -> int:
             check(page.evaluate("strokes.length") == 1, "the drawing was swallowed as a tap")
             check(page.evaluate("window.ink.pending") is True, "drawing resolved the question")
 
-            # 5. Taps on an inked canvas must not answer either.
+            # 5. A tap answers even with ink on the canvas, and leaves it alone.
             tap(700, 500)
-            time.sleep(0.8)
-            print(f"tap on inked canvas  strokes={page.evaluate('strokes.length')}, "
-                  f"pending={page.evaluate('window.ink.pending')}")
-            check(page.evaluate("window.ink.pending") is True, "a tap over existing ink answered the question")
-            check(page.evaluate("strokes.length") == 2, "a tap over existing ink did not draw a dot")
-            check("Clear the canvas" in page.inner_text("#prompt-hint"),
-                  "prompt did not explain that the canvas must be cleared")
-
-            # Clearing re-enables answering, and the question is still live.
-            page.click("#clear")
-            tap()
             thread.join(timeout=20)
-            print(f"cleared then tapped  answer={page.evaluate('window.ink.answer')!r}")
-            check(page.evaluate("window.ink.answer") == "yes", "could not answer after clearing")
+            print(f"tap over ink         answer={page.evaluate('window.ink.answer')!r}, "
+                  f"strokes still={page.evaluate('strokes.length')}")
+            check(page.evaluate("window.ink.answer") == "yes",
+                  "a tap over existing ink did not answer the question")
+            check(page.evaluate("strokes.length") == 1,
+                  "answering over existing ink disturbed the drawing")
+            page.click("#clear")
+
+            # 6. A second finger must not be joined to the first one's stroke.
+            page.touchscreen.tap(200, 200)  # warm up touch input
+            page.click("#clear")
+            multi = page.evaluate("""() => {
+              const board = document.getElementById('board');
+              const send = (type, id, x, y) => board.dispatchEvent(new PointerEvent(type, {
+                pointerId: id, pointerType: 'touch', clientX: x, clientY: y,
+                pressure: 0.5, bubbles: true, cancelable: true,
+              }));
+              send('pointerdown', 1, 200, 200);
+              send('pointermove', 1, 260, 200);
+              send('pointerdown', 2, 800, 600);   // second finger lands
+              send('pointermove', 2, 860, 600);   // and moves far away
+              send('pointermove', 1, 320, 200);
+              send('pointerup', 2, 860, 600);
+              send('pointerup', 1, 320, 200);
+              return strokes.map(s => s.points.map(p => [p[0], p[1]]));
+            }""")
+            xs = [x for stroke in multi for x, _ in stroke]
+            print(f"two fingers          {len(multi)} stroke(s), x range {min(xs):.0f}..{max(xs):.0f}")
+            check(len(multi) == 1, f"second finger created extra strokes: {len(multi)}")
+            check(max(xs) < 500, f"stroke jumped to the second finger at x={max(xs):.0f}")
 
             check(not errors, f"page errors: {errors}")
             browser.close()
@@ -183,6 +200,7 @@ def main() -> int:
               f"{[a['answer'] for a in answers]}")
         check(len(answers) == 3, f"expected 3 logged answers, got {len(answers)}")
         check([a["answer"] for a in answers] == ["yes", "no", "yes"], "logged answers are wrong")
+        check(all(a["question"] for a in answers), "an answer was logged without its question")
 
         pngs = list((data_dir / "captures").glob("*.png"))
         check(not pngs, f"taps should not have produced captures, found {[p.name for p in pngs]}")
