@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Canvas</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="tablet">
+  <canvas id="board"></canvas>
+
+  <div id="bar">
+    <span id="dot" class="dot" title="connection"></span>
+    <span id="status">connecting</span>
+    <span id="countdown" class="countdown"></span>
+    <span class="spacer"></span>
+    <button id="undo" type="button">Undo</button>
+    <button id="clear" type="button">Clear</button>
+    <button id="send" type="button" class="primary">Send now</button>
+  </div>
+
+  <!-- Shown while a yes/no question is waiting. Deliberately not interactive:
+       the answer is a tap anywhere on the empty canvas, not a button press. -->
+  <div id="prompt" hidden>
+    <p id="prompt-question"></p>
+    <p id="prompt-hint"><b>1 tap</b> yes &nbsp;·&nbsp; <b>2 taps</b> no</p>
+    <div id="prompt-taps"></div>
+  </div>
+
+  <div id="flash"></div>
+  <div id="toast"></div>
+
+  <script src="/static/canvas.js"></script>
+</body>
+</html>

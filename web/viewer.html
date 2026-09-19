@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ink viewer</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="viewer">
+  <header>
+    <span id="dot" class="dot"></span>
+    <h1>Ink viewer</h1>
+    <span class="meta" id="meta">waiting for the tablet</span>
+    <span class="spacer"></span>
+    <span id="qa" class="qa" hidden></span>
+  </header>
+
+  <div id="live-wrap">
+    <canvas id="live" width="1180" height="820"></canvas>
+    <div id="live-empty">Nothing being drawn right now.</div>
+  </div>
+
+  <div id="gallery"><div class="empty">No captures yet.</div></div>
+
+  <script src="/static/viewer.js"></script>
+</body>
+</html>

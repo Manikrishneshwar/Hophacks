@@ -1,0 +1,271 @@
+:root {
+  --bg: #0e0f13;
+  --panel: #171a21;
+  --line: #262b36;
+  --text: #e7e9ee;
+  --muted: #8b93a3;
+  --accent: #5b9dff;
+  --good: #46c98b;
+  --bad: #ef5f5f;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  overscroll-behavior: none;
+}
+
+/* ---------- tablet ---------- */
+
+body.tablet {
+  overflow: hidden;
+  /* Stop iPadOS from scrolling, zooming or long-press selecting while drawing. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#board {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+#bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px calc(12px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  background: rgba(14, 15, 19, .82);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+}
+
+#bar .spacer { flex: 1; }
+
+#bar button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  touch-action: manipulation;
+}
+
+#bar button:active { background: #222734; }
+#bar button.primary { background: #1d3054; border-color: #2f5ea8; }
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: 0 0 auto;
+}
+.dot.on { background: var(--good); }
+.dot.off { background: var(--bad); }
+
+#status { color: var(--muted); }
+
+.countdown {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  min-width: 3ch;
+}
+
+/* Pending question. pointer-events stays off so this can never be tapped as a
+   control; the canvas underneath receives everything. */
+#prompt {
+  position: fixed;
+  left: 50%;
+  top: 8%;
+  transform: translateX(-50%);
+  max-width: min(760px, 88vw);
+  padding: 18px 26px;
+  text-align: center;
+  border-radius: 14px;
+  background: rgba(23, 26, 33, .94);
+  border: 1px solid #2f5ea8;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .45);
+  pointer-events: none;
+}
+
+#prompt[hidden] { display: none; }
+
+#prompt-question {
+  margin: 0 0 8px;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+#prompt-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+#prompt-hint b { color: var(--accent); font-weight: 600; }
+
+#prompt.blocked #prompt-hint { color: #d9a441; }
+
+#prompt-taps {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  height: 9px;
+  margin-top: 12px;
+}
+
+#prompt-taps i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Brief white pulse so you can tell a capture happened. */
+#flash {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease-out;
+}
+#flash.on { opacity: .55; transition: none; }
+
+#toast {
+  position: fixed;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%) translateY(-20px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  opacity: 0;
+  transition: opacity .2s, transform .2s;
+  pointer-events: none;
+}
+#toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- viewer ---------- */
+
+body.viewer {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  overflow: hidden;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+header .meta { color: var(--muted); }
+header .spacer { flex: 1; }
+
+.qa {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  white-space: nowrap;
+  max-width: 55vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qa[hidden] { display: none; }
+.qa.waiting { border-color: #2f5ea8; color: var(--accent); }
+.qa.yes { border-color: #2c7a55; color: var(--good); }
+.qa.no { border-color: #8a3a3a; color: var(--bad); }
+
+#live-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Flex (rather than grid) centring so the canvas shrinks to the row instead of
+   sizing the row to its own 1180x820 intrinsic dimensions. */
+#live {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+}
+
+#live-empty {
+  position: absolute;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+#gallery {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: #101218;
+}
+
+#gallery figure {
+  margin: 0;
+  flex: 0 0 auto;
+  width: 190px;
+}
+
+#gallery img {
+  display: block;
+  width: 190px;
+  height: 130px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+#gallery figcaption {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#gallery .empty { color: var(--muted); padding: 40px 4px; }
