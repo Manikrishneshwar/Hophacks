@@ -1,0 +1,56 @@
+---
+description: What this project is, where it stands, and how the user wants to work
+alwaysApply: true
+---
+
+# HopHacks ink pipeline
+
+Tablet draws over LAN, laptop stores the drawing. Read `readME.md` for how it
+works; this file is the state and the working agreements.
+
+## Working agreements
+
+- **Confirm before building anything new.** Explain the plan and wait for a go.
+- **Reminder to push** goes at the end of any list of commands, nowhere else.
+- Always invoke Python as `.\.venv\Scripts\python.exe`. A bare `python` grabs
+  the system interpreter, which lacks the dependencies and has already caused a
+  second server to seize port 8000 while the venv one bound to nothing.
+- Verify changes with the scripts in `scripts/` before saying they work.
+
+## Status
+
+**Step 1 is complete and tested.** Capture on 20s inactivity, PNG plus stroke
+JSON plus `index.jsonl` on disk, optional viewer, tap-to-answer, stroke
+start/end tones and vibration, and One Euro tremor smoothing. This is partly an
+accessibility tool for stroke patients with tremor and limited finger mobility.
+
+**Step 2 is not started.** An API call over each captured image, its text
+spoken on the tablet via ElevenLabs (free tier: 10k credits/month, no shared
+voice library, server-side so the key never reaches the tablet; keep browser
+speech synthesis as fallback). The image API has not been chosen yet. Seams
+already in place: `hub.to_tablets()`, `CaptureRecord.analysis`, and
+`ask_tablet()` for the spoken-result confirmation.
+
+**Tiger Data is parked** at the user's request until everything else is done.
+Nothing is wired; only an unused `INK_DATABASE_URL` and `CaptureStore.sinks`.
+
+**No getter function exists.** Reading data back means `CaptureStore.recent()`,
+the HTTP routes, or the scripts. The user intends to specify one.
+
+## Gotchas worth remembering
+
+- Bump `CLIENT_VERSION` in **both** `web/canvas.js` and `server/app.py` on any
+  frontend change. A tablet's socket silently reconnects after a server
+  restart, so a stale page looks healthy; the version check forces a reload.
+- The key `strokes` is a list of stroke dicts inside a capture's `.json`, but a
+  filename string inside `index.jsonl`. Same name, different type.
+- Stroke points are `[x, y, pressure, t]` in **CSS pixels**; the PNG is
+  `dpr` times larger. `t` is a shared clock across all strokes in a capture.
+- The user draws with a finger on an **Android phone** (iPad was dropped: no
+  vibration API and the tones did not work). `tool` is `touch`, pressure 0.5.
+- No sound or vibration on the first stroke after a page load, by browser
+  policy. The user has decided to live with it; do not "fix" it unprompted.
+- Smoothed strokes keep a `raw` array of unfiltered points. Never drop it; the
+  tremor is potentially the clinically interesting signal.
+- Tremor smoothing needs a far smaller One Euro `beta` than the usual examples,
+  because tremor is fast and a large beta raises the cutoff during the shake.

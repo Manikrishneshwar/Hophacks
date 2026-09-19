@@ -28,7 +28,7 @@ from .storage import store
 
 app = FastAPI(title="Ink Pipeline")
 
-CLIENT_VERSION = "3"
+CLIENT_VERSION = "4"
 
 
 @app.middleware("http")
@@ -151,6 +151,8 @@ async def client_config() -> dict[str, Any]:
         "background": config.CANVAS_BACKGROUND,
         "tap_window_ms": config.TAP_WINDOW_MS,
         "tap_always_listen": config.TAP_ALWAYS_LISTEN,
+        "smoothing": config.SMOOTHING,
+        "smoothing_params": config.SMOOTHING_PRESETS[config.SMOOTHING],
     }
 
 

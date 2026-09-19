@@ -70,6 +70,11 @@ body.tablet {
 #bar button:active { background: #222734; }
 #bar button.primary { background: #1d3054; border-color: #2f5ea8; }
 
+#bar button[aria-pressed="false"] {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
 .dot {
   width: 9px;
   height: 9px;

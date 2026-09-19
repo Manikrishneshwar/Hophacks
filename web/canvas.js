@@ -21,7 +21,7 @@ const promptTapsEl = document.getElementById('prompt-taps');
 
 // Bumped whenever this file changes in a way a stale tablet would get wrong.
 // Must match CLIENT_VERSION in server/app.py.
-const CLIENT_VERSION = '3';
+const CLIENT_VERSION = '4';
 
 const PEN_COLOR = '#111318';
 const BASE_WIDTH = 2.6;
@@ -35,6 +35,8 @@ const TAP_MAX_TRAVEL = 14;
 let IDLE_MS = 20000;
 let TAP_WINDOW_MS = 420;
 let TAP_ALWAYS_LISTEN = false;
+let SMOOTHING = null;      // One Euro parameters, or null when disabled
+let SMOOTHING_NAME = 'off';
 
 const sessionId = `${new Date().toISOString().slice(0, 10)}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -46,6 +48,7 @@ let penSeen = false;       // once a stylus is used, fingers stop drawing
 let width = 0, height = 0;
 let contact = null;        // the in-progress pointer contact, for tap detection
 let activePointerId = null; // only this pointer draws; others are ignored
+let smoother = null;       // per-stroke tremor filter
 
 /* ---------------- canvas sizing ---------------- */
 
@@ -105,6 +108,108 @@ function drawStroke(stroke) {
   for (let i = 1; i < pts.length; i++) drawSegment(pts[i - 1], pts[i], stroke.color);
 }
 
+/* ---------------- stroke feedback ----------------
+ *
+ * A soft tone when a stroke starts and a brighter one when it ends, so the user
+ * knows the tablet registered the contact without having to look for ink. Tones
+ * are synthesised rather than loaded, so there are no audio files to serve and
+ * no delay on the first play.
+ *
+ * This lives only in the tablet page; the desktop viewer stays silent.
+ */
+
+const START_TONE = { freq: 587, seconds: 0.10, gain: 0.16 };  // D5, a soft ding
+const END_TONE = { freq: 880, seconds: 0.07, gain: 0.11 };    // A5, a shorter ting
+
+let audioCtx = null;
+let soundOn = localStorage.getItem('ink-sound') !== 'off';
+let lastToneAt = 0;
+
+function unlockAudio() {
+  // Browsers only allow an AudioContext to start inside a user gesture, so
+  // this is called from pointerdown rather than at load.
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return;
+  if (!audioCtx) audioCtx = new Ctx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function tone({ freq, seconds, gain }) {
+  if (!soundOn || !audioCtx || audioCtx.state !== 'running') return;
+
+  // Rapid strokes would otherwise stack into a buzz.
+  const now = Date.now();
+  if (now - lastToneAt < 45) return;
+  lastToneAt = now;
+
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const envelope = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, t);
+  // Quick attack, exponential decay: a percussive blip rather than a beep.
+  envelope.gain.setValueAtTime(0.0001, t);
+  envelope.gain.exponentialRampToValueAtTime(gain, t + 0.006);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+  osc.connect(envelope).connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + seconds + 0.02);
+}
+
+function strokeStartFeedback() {
+  tone(START_TONE);
+  // Android only; iPadOS has no vibration API, so this is a silent no-op there.
+  if (soundOn) navigator.vibrate?.(50);
+}
+
+function strokeEndFeedback() {
+  tone(END_TONE);
+}
+
+/* ---------------- tremor smoothing ----------------
+ *
+ * A One Euro filter: a low-pass whose cutoff rises with pointer speed, so slow
+ * unsteady movement is smoothed hard while deliberate fast strokes stay
+ * responsive. A plain low-pass would either leave tremor in or make the line
+ * lag badly behind the fingertip.
+ *
+ * The raw samples are kept alongside the filtered ones. For stroke patients the
+ * tremor itself may be the interesting signal, so it must not be discarded.
+ */
+
+function makeSmoother(params) {
+  if (!params) return null;
+  const { min_cutoff: minCutoff, beta, d_cutoff: dCutoff } = params;
+  const alpha = (cutoff, dt) => 1 / (1 + (1 / (2 * Math.PI * cutoff)) / dt);
+
+  let tPrev = null;
+  const value = { x: 0, y: 0 };
+  const rate = { x: 0, y: 0 };
+
+  // Each axis gets its own filter driven by its own speed. Sharing one speed
+  // across both would let a fast horizontal drag raise the cutoff on the
+  // vertical axis and wave the tremor straight through.
+  const step = (axis, raw, dt) => {
+    const ad = alpha(dCutoff, dt);
+    rate[axis] = ad * ((raw - value[axis]) / dt) + (1 - ad) * rate[axis];
+    const a = alpha(minCutoff + beta * Math.abs(rate[axis]), dt);
+    value[axis] = a * raw + (1 - a) * value[axis];
+    return value[axis];
+  };
+
+  return (rawX, rawY, tMs) => {
+    if (tPrev === null) {
+      tPrev = tMs; value.x = rawX; value.y = rawY;
+      return [rawX, rawY];
+    }
+    // Clamp dt: coalesced samples can share a timestamp, and dt of zero would
+    // make the filter coefficient blow up.
+    const dt = Math.max((tMs - tPrev) / 1000, 1 / 250);
+    tPrev = tMs;
+    return [step('x', rawX, dt), step('y', rawY, dt)];
+  };
+}
+
 /* ---------------- pointer input ---------------- */
 
 function round(n) { return Math.round(n * 10) / 10; }
@@ -117,6 +222,16 @@ function pointFrom(event) {
     Math.round((event.pressure || 0.5) * 100) / 100,
     Date.now() - sessionStart,
   ];
+}
+
+/* The filter is fed the event's own high-resolution timestamp rather than the
+ * stored millisecond one. Coalesced samples all arrive in the same tick, so
+ * wall-clock time would collapse their spacing to nothing and leave the filter
+ * with no idea how fast the signal is really moving. */
+function smoothed(raw, timeStamp) {
+  if (!smoother) return raw;
+  const [x, y] = smoother(raw[0], raw[1], timeStamp || performance.now());
+  return [round(x), round(y), raw[2], raw[3]];
 }
 
 function shouldIgnore(event) {
@@ -132,14 +247,27 @@ board.addEventListener('pointerdown', (event) => {
   if (shouldIgnore(event)) return;
   if (event.pointerType === 'pen') penSeen = true;
   event.preventDefault();
+  unlockAudio();
   activePointerId = event.pointerId;
   board.setPointerCapture(event.pointerId);
 
   if (!sessionStart) sessionStart = Date.now();
   contact = { start: Date.now() };
-  current = { tool: event.pointerType, color: PEN_COLOR, width: BASE_WIDTH, points: [pointFrom(event)] };
+  smoother = makeSmoother(SMOOTHING);
+
+  const raw = pointFrom(event);
+  current = {
+    tool: event.pointerType,
+    color: PEN_COLOR,
+    width: BASE_WIDTH,
+    smoothing: SMOOTHING_NAME,
+    points: [smoothed(raw, event.timeStamp)],
+  };
+  if (smoother) current.raw = [raw];
+
   drawStroke(current);
   touch();
+  strokeStartFeedback();
   send({ type: 'begin', color: PEN_COLOR, width: BASE_WIDTH, pt: current.points[0] });
 });
 
@@ -152,7 +280,10 @@ board.addEventListener('pointermove', (event) => {
   const events = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
   const batch = [];
   for (const e of (events.length ? events : [event])) {
-    const pt = pointFrom(e);
+    const raw = pointFrom(e);
+    if (current.raw) current.raw.push(raw);
+
+    const pt = smoothed(raw, e.timeStamp);
     const prev = current.points[current.points.length - 1];
     // Drop sub-pixel jitter; it bloats the stroke file for no visual gain.
     if (Math.abs(pt[0] - prev[0]) < 0.4 && Math.abs(pt[1] - prev[1]) < 0.4) continue;
@@ -173,6 +304,8 @@ function endStroke(event) {
   const finished = current;
   strokes.push(finished);
   current = null;
+  smoother = null;
+  strokeEndFeedback();
 
   // A qualifying tap is retracted rather than kept as a dot.
   if (takeAsTap(finished)) return;
@@ -498,6 +631,15 @@ function connect() {
 
 /* ---------------- controls ---------------- */
 
+const soundButton = document.getElementById('sound');
+soundButton.setAttribute('aria-pressed', String(soundOn));
+soundButton.addEventListener('click', () => {
+  soundOn = !soundOn;
+  localStorage.setItem('ink-sound', soundOn ? 'on' : 'off');
+  soundButton.setAttribute('aria-pressed', String(soundOn));
+  if (soundOn) { unlockAudio(); tone(START_TONE); }
+});
+
 document.getElementById('undo').addEventListener('click', () => {
   strokes.pop();
   if (!strokes.length) sessionStart = 0;
@@ -527,6 +669,8 @@ async function boot() {
     IDLE_MS = settings.idle_timeout_ms ?? IDLE_MS;
     TAP_WINDOW_MS = settings.tap_window_ms ?? TAP_WINDOW_MS;
     TAP_ALWAYS_LISTEN = settings.tap_always_listen ?? TAP_ALWAYS_LISTEN;
+    SMOOTHING = settings.smoothing_params ?? null;
+    SMOOTHING_NAME = settings.smoothing ?? 'off';
   } catch { /* defaults are fine */ }
 
   resize();

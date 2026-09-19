@@ -51,6 +51,26 @@ TAP_WINDOW_MS = int(os.environ.get("INK_TAP_WINDOW_MS", "420"))
 # an empty canvas always listen, at the cost of stippled dots being eaten.
 TAP_ALWAYS_LISTEN = os.environ.get("INK_TAP_ALWAYS_LISTEN", "0") == "1"
 
+# Tremor smoothing, for users with unsteady hands. These are One Euro filter
+# parameters: min_cutoff sets how aggressively slow movement is smoothed, and
+# beta how quickly the filter backs off during fast movement. Lower min_cutoff
+# removes more tremor but adds visible lag behind the fingertip.
+# beta is far lower than typical One Euro tuning on purpose. The usual values
+# assume fast movement is intentional and should stay sharp, but tremor is
+# itself fast, so a large beta raises the cutoff exactly when the shake is worst
+# and lets it through. The cost of a low beta is lag during quick strokes.
+SMOOTHING_PRESETS: dict[str, dict[str, float] | None] = {
+    "off": None,
+    "light": {"min_cutoff": 4.0, "beta": 0.007, "d_cutoff": 1.0},
+    "medium": {"min_cutoff": 1.5, "beta": 0.002, "d_cutoff": 1.0},
+    "strong": {"min_cutoff": 0.7, "beta": 0.0007, "d_cutoff": 1.0},
+}
+
+SMOOTHING = os.environ.get("INK_SMOOTHING", "medium").strip().lower()
+if SMOOTHING not in SMOOTHING_PRESETS:
+    print(f"[config] unknown INK_SMOOTHING={SMOOTHING!r}, falling back to 'medium'")
+    SMOOTHING = "medium"
+
 # Step 2 seam: when a database URL is present the storage layer will also write
 # capture metadata to Postgres/TigerData. Unset means disk-only.
 DATABASE_URL = os.environ.get("INK_DATABASE_URL", "")
