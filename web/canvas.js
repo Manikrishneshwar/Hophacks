@@ -21,7 +21,7 @@ const promptTapsEl = document.getElementById('prompt-taps');
 
 // Bumped whenever this file changes in a way a stale tablet would get wrong.
 // Must match CLIENT_VERSION in server/app.py.
-const CLIENT_VERSION = '2';
+const CLIENT_VERSION = '3';
 
 const PEN_COLOR = '#111318';
 const BASE_WIDTH = 2.6;
@@ -45,6 +45,7 @@ let lastActivity = Date.now();
 let penSeen = false;       // once a stylus is used, fingers stop drawing
 let width = 0, height = 0;
 let contact = null;        // the in-progress pointer contact, for tap detection
+let activePointerId = null; // only this pointer draws; others are ignored
 
 /* ---------------- canvas sizing ---------------- */
 
@@ -125,15 +126,17 @@ function shouldIgnore(event) {
 }
 
 board.addEventListener('pointerdown', (event) => {
+  // One contact at a time. Without this, a second finger landing mid-stroke
+  // appends its moves to the same stroke, drawing a line between the two.
+  if (activePointerId !== null) return;
   if (shouldIgnore(event)) return;
   if (event.pointerType === 'pen') penSeen = true;
   event.preventDefault();
+  activePointerId = event.pointerId;
   board.setPointerCapture(event.pointerId);
 
   if (!sessionStart) sessionStart = Date.now();
-  // Remember whether the canvas was empty when this contact started; only a
-  // contact that began on an empty canvas can turn out to be an answer.
-  contact = { start: Date.now(), onEmptyCanvas: strokes.length === 0 };
+  contact = { start: Date.now() };
   current = { tool: event.pointerType, color: PEN_COLOR, width: BASE_WIDTH, points: [pointFrom(event)] };
   drawStroke(current);
   touch();
@@ -141,8 +144,8 @@ board.addEventListener('pointerdown', (event) => {
 });
 
 board.addEventListener('pointermove', (event) => {
-  if (!current || event.pointerId === undefined) return;
-  if (shouldIgnore(event)) return;
+  // Moves from any other finger are discarded, not folded into this stroke.
+  if (!current || event.pointerId !== activePointerId) return;
   event.preventDefault();
 
   // Coalesced events recover the full sampling rate of a high-Hz stylus.
@@ -162,8 +165,11 @@ board.addEventListener('pointermove', (event) => {
 });
 
 function endStroke(event) {
+  // A lifted finger that was never the drawing one must not end the stroke.
+  if (event && event.pointerId !== activePointerId) return;
+  activePointerId = null;
   if (!current) return;
-  if (event && shouldIgnore(event)) return;
+
   const finished = current;
   strokes.push(finished);
   current = null;
@@ -171,8 +177,6 @@ function endStroke(event) {
   // A qualifying tap is retracted rather than kept as a dot.
   if (takeAsTap(finished)) return;
 
-  // Ink now on the canvas may have made a pending question unanswerable.
-  renderPrompt();
   touch();
   send({ type: 'end' });
 }
@@ -201,7 +205,7 @@ let tapCount = 0;
 let tapTimer = null;
 
 function isTap(stroke) {
-  if (!contact || !contact.onEmptyCanvas) return false;
+  if (!contact) return false;
   if (Date.now() - contact.start > TAP_MAX_MS) return false;
 
   // Measured against the first point rather than end to end, so a quick
@@ -214,14 +218,17 @@ function isTap(stroke) {
 }
 
 function takeAsTap(stroke) {
-  if (question === null && !TAP_ALWAYS_LISTEN) return false;
-  // strokes still holds the stroke that just finished, so an otherwise empty
-  // canvas means exactly one entry: this one.
-  if (strokes.length !== 1) return false;
+  if (question === null) {
+    // With nothing being asked, only listen if configured to, and only on an
+    // otherwise empty canvas. strokes still holds the stroke that just
+    // finished, so empty means exactly one entry: this one.
+    if (!TAP_ALWAYS_LISTEN || strokes.length !== 1) return false;
+  }
   if (!isTap(stroke)) return false;
 
   strokes.pop();
-  sessionStart = 0;
+  // Existing ink keeps its timeline; only a now-empty canvas restarts it.
+  if (!strokes.length) sessionStart = 0;
   redraw();
 
   tapCount += 1;
@@ -277,15 +284,7 @@ function renderPrompt() {
 
   promptEl.hidden = false;
   promptQuestionEl.textContent = question.text || 'Confirm?';
-
-  // Ink on the canvas blocks answering, otherwise a stray tap while drawing
-  // would silently resolve the question.
-  const blocked = strokes.length > 0;
-  promptEl.classList.toggle('blocked', blocked);
-  promptHintEl.innerHTML = blocked
-    ? 'Clear the canvas to answer'
-    : '<b>1 tap</b> yes &nbsp;·&nbsp; <b>2 taps</b> no';
-
+  promptHintEl.innerHTML = '<b>1 tap</b> yes &nbsp;·&nbsp; <b>2 taps</b> no';
   promptTapsEl.innerHTML = '<i></i>'.repeat(tapCount);
 }
 

@@ -28,7 +28,7 @@ from .storage import store
 
 app = FastAPI(title="Ink Pipeline")
 
-CLIENT_VERSION = "2"
+CLIENT_VERSION = "3"
 
 
 @app.middleware("http")

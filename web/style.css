@@ -121,8 +121,6 @@ body.tablet {
 
 #prompt-hint b { color: var(--accent); font-weight: 600; }
 
-#prompt.blocked #prompt-hint { color: #d9a441; }
-
 #prompt-taps {
   display: flex;
   justify-content: center;
