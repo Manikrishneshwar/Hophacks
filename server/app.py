@@ -10,6 +10,7 @@ Routes:
     GET  /api/config  client settings (idle timeout, background)
     GET  /api/captures recent capture metadata
     GET  /api/caretaker/events history for the caregiver phone
+    GET  /api/caretaker/stats  today's confirmed request counts
     GET  /captures/*  the stored PNG and stroke files
     GET  /tts/*       synthesised speech, served so the API key stays here
     WS   /ws          live channel, shared by tablet, viewers, and caretakers
@@ -51,8 +52,8 @@ from memory_graph import MemoryGraph  # noqa: E402
 
 app = FastAPI(title="Ink Pipeline")
 
-CLIENT_VERSION = "9"
-CARETAKER_VERSION = "1"
+CLIENT_VERSION = "10"
+CARETAKER_VERSION = "2"
 
 
 @app.middleware("http")
@@ -175,7 +176,7 @@ class CaretakerLog:
             answer = None
         message = {
             "type": "caretaker",
-            "kind": "call" if self.call else self.kind,
+            "kind": "emergency" if self.call else self.kind,
             "id": self.record.id,
             "created_at": self.record.created_at,
             "image": f"/captures/{self.record.png}",
@@ -189,6 +190,7 @@ class CaretakerLog:
         }
         if self.call:
             message["call"] = self.call
+        message["priority"] = "emergency" if message["kind"] == "emergency" else "normal"
         return message
 
 
@@ -243,9 +245,11 @@ def _caretaker_history(limit: int = 30) -> list[dict[str, Any]]:
             answer = "no"
         else:
             answer = None
+        detail = str(analysis.get("detail") or "").lower()
+        kind = "emergency" if detail in {"call", "caretaker"} else "request"
         events.append({
             "type": "caretaker",
-            "kind": "request",
+            "kind": kind,
             "id": rec["id"],
             "created_at": rec.get("created_at"),
             "image": f"/captures/{rec['png']}",
@@ -256,8 +260,45 @@ def _caretaker_history(limit: int = 30) -> list[dict[str, Any]]:
             "answer": answer,
             "prompts": prompts,
             "answers": answer_rows,
+            "priority": "emergency" if kind == "emergency" else "normal",
         })
     return events
+
+
+def _request_label(analysis: dict[str, Any]) -> str | None:
+    """The thing that was actually confirmed, e.g. pizza rather than food."""
+    if not analysis.get("confirmed"):
+        return None
+    tag = str(analysis.get("tag") or "").strip().lower()
+    detail = str(analysis.get("detail") or "").strip().lower()
+    if tag in {"play", "game", "yes", "no"}:
+        return None
+    if pipeline.is_specific(detail, tag):
+        return detail
+    if tag:
+        return tag
+    return None
+
+
+def _daily_request_stats(records: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    day = date.today().isoformat()
+    rows = records if records is not None else store.for_day(day)
+    counts: dict[str, int] = {}
+    for rec in rows:
+        label = _request_label(rec.get("analysis") or {})
+        if not label:
+            continue
+        counts[label] = counts.get(label, 0) + 1
+    items = [
+        {"label": name, "count": count}
+        for name, count in sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))
+    ]
+    return {
+        "type": "stats",
+        "date": day,
+        "total": sum(item["count"] for item in items),
+        "items": items,
+    }
 
 
 async def push_caretaker(
@@ -269,6 +310,7 @@ async def push_caretaker(
     message = log.to_message(result, confirmed=confirmed)
     print(f"[caretaker] {message['id']}  {message['answer'] or '—'}  {message.get('text') or ''}")
     await hub.to_caretakers(message)
+    await hub.to_caretakers(_daily_request_stats())
 
 
 async def ask_tablet(question: str, timeout: float = 120.0, context: dict[str, Any] | None = None) -> str:
@@ -406,6 +448,11 @@ async def list_captures(limit: int = 50) -> dict[str, Any]:
 @app.get("/api/caretaker/events")
 async def caretaker_events(limit: int = 30) -> dict[str, Any]:
     return {"patient": _patient_brief(), "events": _caretaker_history(limit)}
+
+
+@app.get("/api/caretaker/stats")
+async def caretaker_stats() -> dict[str, Any]:
+    return _daily_request_stats()
 
 
 @app.post("/api/capture")
@@ -678,19 +725,16 @@ async def place_caretaker_call(
     name = str(info.get("name") or "your caretaker").strip()
     phone = str(info.get("phone") or "").strip()
     relation = str(info.get("relation") or "").strip()
-    spoken = f"Calling {name} now."
-    print(f"[call] {name}  {phone or '(no number)'}")
+    spoken = f"I've let {name} know. Help is on the way."
+    print(f"[emergency] {name}  {phone or '(no number)'}  capture={record.id}")
     if log is not None:
         log.call = {"name": name, "phone": phone, "relation": relation}
+        log.kind = "emergency"
+        # Buzz the caretaker phone before the pad even finishes speaking.
+        await push_caretaker(log, result, confirmed=True)
     await speak_only(record, spoken, log=log)
-    await hub.to_tablets({
-        "type": "call",
-        "name": name,
-        "phone": phone,
-        "relation": relation,
-    })
     await hub.to_viewers({
-        "type": "call",
+        "type": "emergency",
         "name": name,
         "phone": phone,
         "relation": relation,
@@ -815,6 +859,7 @@ async def websocket_endpoint(socket: WebSocket, role: str = "viewer") -> None:
                 "role": "caretaker",
                 "version": CARETAKER_VERSION,
                 "patient": _patient_brief(),
+                "stats": _daily_request_stats(),
             }))
         else:
             await socket.send_text(json.dumps({"type": "welcome", "role": role}))

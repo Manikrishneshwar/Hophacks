@@ -436,14 +436,15 @@ body.brain {
 .graph-tools { display: flex; gap: 4px; }
 .graph-tools button {
   appearance: none;
-  width: 28px;
+  min-width: 28px;
   height: 24px;
-  padding: 0;
+  padding: 0 6px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--bg);
   color: var(--text);
   cursor: pointer;
+  font-size: 12px;
 }
 .graph-host canvas.rotating { cursor: alias; }
 
@@ -575,8 +576,48 @@ body.caretaker #banner {
 }
 
 body.caretaker #banner[hidden] { display: none; }
-body.caretaker #banner.yes { border-color: #2c7a55; color: var(--good); }
-body.caretaker #banner.no { border-color: #8a3a3a; color: var(--bad); }
+body.caretaker #banner.emergency {
+  border-color: #c9a227;
+  color: #e7c45a;
+  background: #2a1f0a;
+}
+
+#side-image {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  margin: 10px 0;
+}
+#side-image[hidden] { display: none; }
+
+body.brain.embed header .nav,
+body.brain.embed #demo { display: none; }
+body.brain.embed header .meta { display: none; }
+body.brain.embed .brain-layout {
+  grid-template-columns: 1fr;
+}
+body.brain.embed #history-pane { display: none; }
+body.brain.embed #load-more {
+  display: block;
+  margin: 8px 12px 10px;
+  width: calc(100% - 24px);
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+}
+body.brain.embed #load-more[hidden] { display: none; }
+body.brain.embed .graph-tools button[data-act] {
+  width: 36px;
+  height: 32px;
+  font-size: 16px;
+  font-weight: 700;
+}
 
 body.caretaker #feed {
   overflow: auto;

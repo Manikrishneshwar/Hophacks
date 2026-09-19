@@ -6,7 +6,7 @@
  * HTTPS, so on a plain LAN the alert is this page, a chime, and vibration.
  */
 
-const CARETAKER_VERSION = '1';
+const CARETAKER_VERSION = '2';
 
 const dotEl = document.getElementById('dot');
 const patientEl = document.getElementById('patient');
@@ -60,7 +60,7 @@ function notifySystem(event) {
   const body = [event.text, answer !== 'unanswered' ? `Answer: ${answer}` : null]
     .filter(Boolean).join('\n');
   try {
-    const n = new Notification(event.kind === 'call' ? 'Calling for help' : 'New drawing', {
+    const n = new Notification(event.kind === 'emergency' ? 'HELP — tap now' : 'New drawing', {
       body: body || 'A drawing just finished.',
       icon: event.image,
       image: event.image,
@@ -105,7 +105,7 @@ function answerLabel(value) {
 function card(event) {
   const article = document.createElement('article');
   article.className = 'caretaker-card';
-  if (event.kind === 'call') article.classList.add('call');
+  if (event.kind === 'emergency') article.classList.add('call');
   if (event.answer === 'yes') article.classList.add('yes');
   if (event.answer === 'no') article.classList.add('no');
   article.dataset.id = event.id || '';
@@ -126,8 +126,8 @@ function card(event) {
     </div>
     ${event.image ? `<img src="${event.image}" alt="drawing">` : ''}
     <div class="caretaker-card-body">
-      ${event.kind === 'call' && event.call
-        ? `<p class="call-line">Calling ${event.call.name || 'caretaker'}${event.call.phone ? ` · ${event.call.phone}` : ''}</p>`
+      ${event.kind === 'emergency' && event.call
+        ? `<p class="call-line">HELP · ${escapeHtml(event.call.name || 'caretaker')} has been alerted</p>`
         : ''}
       ${prompts.map((line) => `<p class="prompt-line">${escapeHtml(line)}</p>`).join('')}
       ${answers.map((row) => `<p class="qa-line"><span>${escapeHtml(row.question || '')}</span> <b class="${row.answer || ''}">${answerLabel(row.answer)}</b></p>`).join('')}
@@ -175,9 +175,11 @@ function upsert(event, { alert = false } = {}) {
 function showBanner(event) {
   const answer = answerLabel(event.answer);
   bannerEl.hidden = false;
-  bannerEl.className = event.answer === 'yes' ? 'yes' : (event.answer === 'no' ? 'no' : '');
-  bannerEl.textContent = event.kind === 'call'
-    ? `Help: calling ${event.call?.name || 'caretaker'}`
+  bannerEl.className = event.kind === 'emergency'
+    ? 'emergency'
+    : (event.answer === 'yes' ? 'yes' : (event.answer === 'no' ? 'no' : ''));
+  bannerEl.textContent = event.kind === 'emergency'
+    ? `HELP · ${event.call?.name || 'caretaker'} — tap to open`
     : `${answer} · ${event.text || 'Drawing finished'}`;
 }
 

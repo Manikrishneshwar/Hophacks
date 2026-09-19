@@ -1,19 +1,19 @@
 /* Offline force-directed graph with pan, zoom, and rotate. */
 
 (function () {
-  const WORLD = 1400;
+  const WORLD = 2000;
   const CX = WORLD / 2;
   const CY = WORLD / 2;
 
   function layout(nodes, edges) {
     const placed = nodes.map((node, index) => {
       const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
-      const ring = node.group === 'person' ? 0 : 180 + (index % 6) * 36;
+      const ring = node.group === 'person' ? 0 : 260 + (index % 8) * 55;
       return {
         ...node,
         x: CX + Math.cos(angle) * ring,
         y: CY + Math.sin(angle) * ring,
-        r: node.group === 'person' ? 22 : node.group === 'event' ? 8 : 12 + Math.min(10, (node.weight || 0) * 1.6),
+        r: node.group === 'person' ? 24 : node.group === 'event' ? 9 : 13 + Math.min(10, (node.weight || 0) * 1.6),
       };
     });
     const byId = Object.fromEntries(placed.map((node) => [node.id, node]));
@@ -21,7 +21,7 @@
       .map((edge) => ({ ...edge, a: byId[edge.from], b: byId[edge.to] }))
       .filter((edge) => edge.a && edge.b);
 
-    for (let step = 0; step < 90; step += 1) {
+    for (let step = 0; step < 120; step += 1) {
       for (let i = 0; i < placed.length; i += 1) {
         for (let j = i + 1; j < placed.length; j += 1) {
           const a = placed[i];
@@ -29,7 +29,7 @@
           let dx = a.x - b.x;
           let dy = a.y - b.y;
           const dist = Math.hypot(dx, dy) || 0.1;
-          const force = 1800 / (dist * dist);
+          const force = 5200 / (dist * dist);
           dx = (dx / dist) * force;
           dy = (dy / dist) * force;
           a.x += dx;
@@ -42,15 +42,15 @@
         const dx = link.b.x - link.a.x;
         const dy = link.b.y - link.a.y;
         const dist = Math.hypot(dx, dy) || 0.1;
-        const pull = (dist - 130) * 0.035;
+        const pull = (dist - 300) * 0.025;
         link.a.x += (dx / dist) * pull;
         link.a.y += (dy / dist) * pull;
         link.b.x -= (dx / dist) * pull;
         link.b.y -= (dy / dist) * pull;
       }
       for (const node of placed) {
-        node.x += (CX - node.x) * 0.015;
-        node.y += (CY - node.y) * 0.015;
+        node.x += (CX - node.x) * 0.01;
+        node.y += (CY - node.y) * 0.01;
         node.x = Math.min(WORLD - 40, Math.max(40, node.x));
         node.y = Math.min(WORLD - 40, Math.max(40, node.y));
       }
@@ -72,6 +72,14 @@
     let moved = false;
     let lastX = 0;
     let lastY = 0;
+    const pointers = new Map();
+    let pinchStartDist = 0;
+    let pinchStartScale = 1;
+    let pinching = false;
+
+    function clampScale(value) {
+      return Math.min(8, Math.max(0.25, value));
+    }
 
     function resize() {
       const parent = canvas.parentElement;
@@ -120,9 +128,45 @@
     function fit() {
       resize();
       angle = 0;
-      scale = Math.min(canvas.width / WORLD, canvas.height / WORLD) * 0.92;
-      panX = (canvas.width - WORLD * scale) / 2;
-      panY = (canvas.height - WORLD * scale) / 2;
+      const nodes = model.nodes;
+      if (!nodes.length) {
+        scale = 1;
+        panX = 0;
+        panY = 0;
+        return;
+      }
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const node of nodes) {
+        minX = Math.min(minX, node.x - node.r);
+        minY = Math.min(minY, node.y - node.r);
+        maxX = Math.max(maxX, node.x + node.r);
+        maxY = Math.max(maxY, node.y + node.r);
+      }
+      const pad = 140;
+      const bw = Math.max(220, maxX - minX + pad * 2);
+      const bh = Math.max(220, maxY - minY + pad * 2);
+      // Start a bit closer than a full fit so labels are readable; use − / pinch to zoom out.
+      scale = Math.min(canvas.width / bw, canvas.height / bh) * 1.35;
+      scale = clampScale(scale);
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+      panX = canvas.width / 2 - cx * scale;
+      panY = canvas.height / 2 - cy * scale;
+    }
+
+    function zoomTo(next, clientX, clientY) {
+      const cx = clientX == null ? canvas.getBoundingClientRect().left + canvas.getBoundingClientRect().width / 2 : clientX;
+      const cy = clientY == null ? canvas.getBoundingClientRect().top + canvas.getBoundingClientRect().height / 2 : clientY;
+      const world = screenToWorld(cx, cy);
+      const p = canvasPoint(cx, cy);
+      const cam = worldToCamera(world.x, world.y);
+      scale = clampScale(next);
+      panX = p.x - cam.x * scale;
+      panY = p.y - cam.y * scale;
+      redraw();
     }
 
     function redraw() {
@@ -194,6 +238,10 @@
       redraw();
     };
 
+    this.zoomBy = function zoomBy(factor, clientX, clientY) {
+      zoomTo(scale * factor, clientX, clientY);
+    };
+
     canvas.addEventListener('wheel', (event) => {
       event.preventDefault();
       if (event.shiftKey) {
@@ -201,19 +249,21 @@
         redraw();
         return;
       }
-      const world = screenToWorld(event.clientX, event.clientY);
-      const next = Math.min(3.2, Math.max(0.35, scale * (event.deltaY < 0 ? 1.12 : 0.89)));
-      const p = canvasPoint(event.clientX, event.clientY);
-      const cam = worldToCamera(world.x, world.y);
-      panX = p.x - cam.x * next;
-      panY = p.y - cam.y * next;
-      scale = next;
-      redraw();
+      zoomTo(scale * (event.deltaY < 0 ? 1.12 : 0.89), event.clientX, event.clientY);
     }, { passive: false });
 
     canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
     canvas.addEventListener('pointerdown', (event) => {
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pointers.size === 2) {
+        const pts = [...pointers.values()];
+        pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+        pinchStartScale = scale;
+        pinching = true;
+        dragging = false;
+        return;
+      }
       dragging = true;
       rotating = wantsRotate(event);
       moved = false;
@@ -224,6 +274,17 @@
     });
 
     canvas.addEventListener('pointermove', (event) => {
+      if (pointers.has(event.pointerId)) {
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      }
+      if (pointers.size === 2) {
+        const pts = [...pointers.values()];
+        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+        const midX = (pts[0].x + pts[1].x) / 2;
+        const midY = (pts[0].y + pts[1].y) / 2;
+        zoomTo(pinchStartScale * (dist / pinchStartDist), midX, midY);
+        return;
+      }
       if (!dragging) return;
       const dx = event.clientX - lastX;
       const dy = event.clientY - lastY;
@@ -241,7 +302,15 @@
     });
 
     canvas.addEventListener('pointerup', (event) => {
-      canvas.releasePointerCapture(event.pointerId);
+      pointers.delete(event.pointerId);
+      try { canvas.releasePointerCapture(event.pointerId); } catch { /* already released */ }
+      if (pinching) {
+        if (pointers.size < 2) pinching = false;
+        dragging = false;
+        rotating = false;
+        canvas.classList.remove('rotating');
+        return;
+      }
       dragging = false;
       rotating = false;
       canvas.classList.remove('rotating');
@@ -251,6 +320,12 @@
       selectedId = node.id;
       redraw();
       if (onSelect) onSelect(node, data);
+    });
+
+    canvas.addEventListener('pointercancel', (event) => {
+      pointers.delete(event.pointerId);
+      pinching = pointers.size >= 2;
+      dragging = false;
     });
 
     canvas.addEventListener('dblclick', () => {

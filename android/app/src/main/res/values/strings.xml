@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ink Caretaker</string>
+    <string name="tab_alerts">Alerts</string>
+    <string name="tab_brain">Brain</string>
+    <string name="tab_stats">Today</string>
+    <string name="empty">No events yet. Keep this app open on the same Wi-Fi as the pad.</string>
+    <string name="stats_empty">No confirmed requests today yet.</string>
+    <string name="stats_heading">Today\'s requests</string>
+    <string name="load_more">Load more</string>
+    <string name="connect">Connect</string>
+    <string name="host_hint">Laptop Wi-Fi address</string>
+    <string name="port_hint">Port</string>
+    <string name="setup_title">Where is the pad server?</string>
+    <string name="setup_body">Same Wi-Fi as the drawing phone. Type the laptop address printed by run.py (not localhost).</string>
+    <string name="help">HELP</string>
+    <string name="acknowledge">I\'m on my way</string>
+    <string name="listening">Listening for drawings</string>
+    <string name="change_server">Change laptop address</string>
+</resources>

@@ -26,7 +26,7 @@ const gameTextEl = document.getElementById('game-text');
 
 // Bumped whenever this file changes in a way a stale tablet would get wrong.
 // Must match CLIENT_VERSION in server/app.py.
-const CLIENT_VERSION = '9';
+const CLIENT_VERSION = '10';
 
 const PEN_COLOR = '#111318';
 const BASE_WIDTH = 2.6;
@@ -552,16 +552,10 @@ function setGame(target) {
 }
 
 function startCall(message) {
-  const name = message.name || 'caretaker';
-  const phone = (message.phone || '').replace(/\s+/g, '');
-  toast(`Calling ${name}`);
-  if (!phone) return;
-  const link = document.createElement('a');
-  link.href = `tel:${phone}`;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  // Help is an emergency alert on the caretaker phone, not a dialer on this
+  // pad — switching apps here is too much work for the person drawing.
+  const name = message.name || 'your caretaker';
+  toast(`Help is on the way · ${name}`);
 }
 
 /* ---------------- idle timer ---------------- */

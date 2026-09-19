@@ -12,8 +12,7 @@ data/
 eval/reports/
 .DS_Store
 
-# Recognition templates and daily journals (created at runtime).
-drawings_db.json
-memory_graph.json
-monthly_events/**
-!monthly_events/.gitkeep
+android/.gradle/
+android/local.properties
+android/app/build/
+android/.idea/
