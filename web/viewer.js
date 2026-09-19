@@ -87,6 +87,10 @@ function handle(message) {
       addCapture(message.record, true);
       break;
 
+    case 'analysis':
+      showAnalysis(message.id, message.text);
+      break;
+
     case 'ask':
       showQa(`${message.question || 'Confirm?'} — waiting for a tap`, 'waiting');
       break;
@@ -109,10 +113,18 @@ function showQa(text, state) {
 
 /* ---------------- gallery ---------------- */
 
+const figures = new Map();   // capture id -> its gallery entry
+
+function showAnalysis(id, text) {
+  const line = figures.get(id)?.querySelector('.analysis');
+  if (line) line.textContent = text;
+}
+
 function addCapture(record, prepend) {
   gallery.querySelector('.empty')?.remove();
 
   const figure = document.createElement('figure');
+  figures.set(record.id, figure);
   const link = document.createElement('a');
   link.href = `/captures/${record.png}`;
   link.target = '_blank';
@@ -126,7 +138,11 @@ function addCapture(record, prepend) {
   const time = new Date(record.created_at);
   caption.textContent = `${time.toLocaleTimeString()} · ${record.stroke_count} strokes · ${record.trigger}`;
 
-  figure.append(link, caption);
+  const analysis = document.createElement('figcaption');
+  analysis.className = 'analysis';
+  analysis.textContent = record.analysis?.text || '';
+
+  figure.append(link, caption, analysis);
   if (prepend) gallery.prepend(figure);
   else gallery.append(figure);
 }

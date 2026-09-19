@@ -172,6 +172,7 @@ data/captures/2026-09-19T00-22-31-287.png    the drawing, flattened onto white
 data/captures/2026-09-19T00-22-31-287.json   the strokes that produced it
 data/index.jsonl                             one metadata record per capture
 data/answers.jsonl                           one record per tap answer
+data/tts/<hash>.mp3                          cached speech, keyed by sentence
 ```
 
 Filenames are local timestamps to the millisecond, so they sort chronologically
@@ -194,6 +195,86 @@ with open("data/index.jsonl", encoding="utf-8") as f:
 Each record carries an `analysis` field, currently `null`, reserved for the text
 that step 2's API returns for that image.
 
+## Step 2 hook
+
+Every saved capture is handed to `process_capture` in `server/pipeline.py`.
+That function is a placeholder — replace its body with the real API call. It
+returns the text to be spoken, or `None` for nothing.
+
+```python
+def process_capture(image: Path, data: dict[str, Any]) -> str | None:
+    # image: path to the PNG; image.read_bytes() for the raw bytes
+    # data:  {"points": [[x, y], ...], "strokes": int}
+```
+
+`points` is every point of every stroke in one flat list, in the order drawn.
+Stroke boundaries are not marked, only counted — pressure and timestamps are
+dropped. The coordinates are the smoothed ones, matching the PNG; the raw
+tremor samples are still in the capture's `.json` if you need them.
+
+It runs on a worker thread *after* the upload has been answered, so a slow API
+call never holds up the tablet or risks its upload timing out. An exception is
+logged and swallowed rather than taking the server down.
+
+A capture with four strokes logs:
+
+```
+[capture] 2026-09-19T02-46-21-390.png  4 strokes  42,849 bytes
+[pipeline] image   2026-09-19T02-46-21-390.png (42,849 bytes)
+[pipeline] strokes 4
+[pipeline] points  104, first=[150, 180], last=[671.9, 510.7]
+[pipeline] text    'I would like a glass of water, please.'
+[analysis] 2026-09-19T02-46-21-390: I would like a glass of water, please.
+```
+
+Until the real call is in, it returns `SAMPLE_TEXT` from the top of the file, so
+the speech half below has a fixed sentence to work against.
+
+The returned text also appears under that capture's thumbnail in the viewer.
+
+## Speaking the result
+
+Whatever `process_capture` returns is spoken on the tablet and then confirmed
+with a tap, which closes the loop: the user sees and hears what was understood
+and says yes or no without typing.
+
+Synthesis is ElevenLabs, and it happens **here, not on the tablet**, so the API
+key never leaves this machine. The MP3 is cached under `data/tts/` keyed by text,
+voice and model, so repeating a sentence costs no credits. The tablet is handed
+only a local URL.
+
+```
+ELEVENLABS_API_KEY=sk-...
+```
+
+Put that in a `.env` file in the project root; it is gitignored. Without a key
+nothing breaks — the tablet reads the sentence with its own voice engine
+instead, which is why a demo on a dead Wi-Fi network still talks.
+
+The sentence is always shown on the canvas as well as spoken, and `Replay` in
+the bottom bar says it again. The `Sound` button suppresses speech along with
+the stroke tones; the text stays on screen either way.
+
+The free ElevenLabs tier requires visible attribution, so "Powered by
+ElevenLabs" appears under the sentence whenever their audio was used. It is not
+shown when the device's own voice spoke, because then it isn't theirs.
+
+`eleven_flash_v2_5` is the default model: roughly half a credit per character
+and the quickest to return. `eleven_multilingual_v2` sounds warmer at a full
+credit per character. On the free 10,000 credits a month, a 40-character
+sentence works out to about 500 of them on flash, 250 on multilingual.
+
+A capture that gets spoken and confirmed logs:
+
+```
+[speech] 6b1f3d...mp3  38 chars, 23,414 bytes, model eleven_flash_v2_5
+[answer]  YES Did I get that right?
+[analysis] 2026-09-19T02-46-21-390 confirmed: yes
+```
+
+The tap lands in `data/answers.jsonl` with the capture id and the spoken text in
+its `context`, so a yes/no is always traceable to the drawing that caused it.
+
 ## Configuration
 
 Set these in the environment before starting:
@@ -206,7 +287,16 @@ Set these in the environment before starting:
 | `INK_TAP_ALWAYS_LISTEN` | `0` | `1` makes an empty canvas always accept taps |
 | `INK_PORT` | `8000` | Port to serve on |
 | `INK_DATA_DIR` | `./data` | Where captures are written |
+| `INK_CONFIRM_TIMEOUT_S` | `60` | How long a spoken sentence waits to be confirmed |
+| `INK_SPEECH` | `1` | `0` skips synthesis; the tablet still speaks the text |
+| `ELEVENLABS_API_KEY` | unset | Without it the tablet's own voice is used |
+| `ELEVENLABS_VOICE_ID` | Rachel | Any premade voice; the shared library needs a paid plan |
+| `ELEVENLABS_MODEL` | `eleven_flash_v2_5` | `eleven_multilingual_v2` for quality over cost |
 | `INK_DATABASE_URL` | unset | Postgres/TigerData connection string |
+
+`.env` in the project root is read at startup and is gitignored, which is where
+the key belongs. Real environment variables win over it, so a single run can be
+overridden from the shell.
 
 ## Tests
 
@@ -214,6 +304,8 @@ Set these in the environment before starting:
 .\.venv\Scripts\python.exe scripts\browser_test.py   # capture loop, starts its own server
 .\.venv\Scripts\python.exe scripts\tap_test.py       # tap answers and multi-touch
 .\.venv\Scripts\python.exe scripts\smoothing_test.py # tremor filter effectiveness
+.\.venv\Scripts\python.exe scripts\pipeline_test.py  # what step 2 receives
+.\.venv\Scripts\python.exe scripts\speech_test.py    # synthesis, caching, fallback, confirm
 .\.venv\Scripts\python.exe scripts\smoke_test.py     # HTTP path, against a running server
 .\.venv\Scripts\python.exe scripts\show_data.py      # list what has been captured
 .\.venv\Scripts\python.exe scripts\screenshots.py    # renders .preview/*.png
@@ -228,15 +320,18 @@ run.py              launcher: LAN address, QR code, firewall check
 server/config.py    settings
 server/storage.py   disk writes, the JSONL index, and the database seam
 server/app.py       routes and the WebSocket fan-out
+server/pipeline.py  the step 2 hook: drawing in, text out
+server/speech.py    ElevenLabs synthesis and its on-disk cache
 web/canvas.html     tablet drawing surface
 web/viewer.html     optional desktop view
 ```
 
-## Step 2 (not built yet)
+## Still to come
 
-Text-to-speech on the tablet, driven by an API call on each captured image. The
-pieces already in place for it: the tablet's WebSocket is bidirectional and the
-server's `hub.to_tablets()` is wired but unused, so speech can be pushed down
-the existing connection; `CaptureRecord.analysis` is the field the API's text
-belongs in; and `CaptureStore.sinks` is where a database sink plugs in without
-touching the capture path.
+The real API call inside `process_capture`, replacing `SAMPLE_TEXT`; everything
+downstream of it — speech, display, confirmation — already works against that
+return value.
+
+Then the database. `CaptureRecord.analysis` is the field the returned text
+belongs in, and `CaptureStore.sinks` is where a Postgres/TigerData sink plugs in
+without touching the capture path.

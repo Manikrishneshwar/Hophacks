@@ -18,10 +18,13 @@ const promptEl = document.getElementById('prompt');
 const promptQuestionEl = document.getElementById('prompt-question');
 const promptHintEl = document.getElementById('prompt-hint');
 const promptTapsEl = document.getElementById('prompt-taps');
+const speechEl = document.getElementById('speech');
+const speechTextEl = document.getElementById('speech-text');
+const speechSourceEl = document.getElementById('speech-source');
 
 // Bumped whenever this file changes in a way a stale tablet would get wrong.
 // Must match CLIENT_VERSION in server/app.py.
-const CLIENT_VERSION = '4';
+const CLIENT_VERSION = '5';
 
 const PEN_COLOR = '#111318';
 const BASE_WIDTH = 2.6;
@@ -310,6 +313,7 @@ function endStroke(event) {
   // A qualifying tap is retracted rather than kept as a dot.
   if (takeAsTap(finished)) return;
 
+  hideSpeech();
   touch();
   send({ type: 'end' });
 }
@@ -456,10 +460,92 @@ const ink = {
   pending: false,
   question: null,
   onAnswer: null,
+  speech: null,
   ask,
   cancel: cancelQuestion,
 };
 window.ink = ink;
+
+/* ---------------- speech ----------------
+ *
+ * The server sends the sentence it made of the drawing, with a url when it
+ * managed to synthesise the audio itself. A missing url is not a failure: the
+ * phone then reads the text with its own voice engine, so this never goes
+ * silent. Either way the sentence is also shown, because the tap that follows
+ * confirms it and the user has to be able to check what was heard.
+ */
+
+const replayButton = document.getElementById('replay');
+
+let audio = null;          // element playing server audio, if any
+let lastSpoken = null;     // { text, url }, so Replay has something to repeat
+
+function speak(text, url) {
+  if (!text) return;
+  lastSpoken = { text, url: url || null };
+  replayButton.disabled = false;
+  speechEl.hidden = false;
+  speechTextEl.textContent = text;
+  play();
+}
+
+function play() {
+  if (!lastSpoken) return;
+  const { text, url } = lastSpoken;
+  stopSpeaking();
+
+  if (!soundOn) {
+    speechSourceEl.textContent = 'sound is off · tap Sound, then Replay';
+    ink.speech = { text, url, via: 'muted' };
+    return;
+  }
+
+  if (url) {
+    // Autoplay is allowed here because drawing counted as the user gesture, but
+    // a page that has only been looked at is still refused; hence the fallback.
+    audio = new Audio(url);
+    audio.play().catch(() => speakOnDevice(text));
+    speechSourceEl.textContent = 'Powered by ElevenLabs';
+    ink.speech = { text, url, via: 'elevenlabs' };
+    return;
+  }
+
+  speakOnDevice(text);
+}
+
+function speakOnDevice(text) {
+  const synth = window.speechSynthesis;
+  if (!synth) {
+    speechSourceEl.textContent = 'no voice available on this device';
+    ink.speech = { text, url: null, via: 'none' };
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 0.95;   // a little under default, easier to follow
+  synth.speak(utterance);
+  speechSourceEl.textContent = 'spoken by this device';
+  ink.speech = { text, url: null, via: 'browser' };
+}
+
+function stopSpeaking() {
+  window.speechSynthesis?.cancel();
+  if (audio) {
+    audio.pause();
+    audio = null;
+  }
+}
+
+/* Drawing again makes the last sentence stale. Taps are exempt: those are the
+   answer to it, and a second tap must not be left reading a blank panel. */
+function hideSpeech() {
+  speechEl.hidden = true;
+  stopSpeaking();
+}
+
+replayButton.addEventListener('click', () => {
+  unlockAudio();
+  play();
+});
 
 /* ---------------- idle timer ---------------- */
 
@@ -611,7 +697,7 @@ function connect() {
   socket.addEventListener('message', (event) => {
     let message;
     try { message = JSON.parse(event.data); } catch { return; }
-    // Step 2 will handle a 'speak' message here.
+    if (message.type === 'speak') speak(message.text, message.url);
     if (message.type === 'welcome') {
       setStatus('connected', 'on');
       checkVersion(message.version);
@@ -638,6 +724,7 @@ soundButton.addEventListener('click', () => {
   localStorage.setItem('ink-sound', soundOn ? 'on' : 'off');
   soundButton.setAttribute('aria-pressed', String(soundOn));
   if (soundOn) { unlockAudio(); tone(START_TONE); }
+  else stopSpeaking();
 });
 
 document.getElementById('undo').addEventListener('click', () => {
@@ -656,6 +743,7 @@ document.getElementById('clear').addEventListener('click', () => {
   countdownEl.textContent = '';
   redraw();
   renderPrompt();
+  hideSpeech();
   send({ type: 'clear' });
 });
 

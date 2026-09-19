@@ -17,6 +17,7 @@
     <span id="countdown" class="countdown"></span>
     <span class="spacer"></span>
     <button id="sound" type="button" aria-pressed="true">Sound</button>
+    <button id="replay" type="button" disabled>Replay</button>
     <button id="undo" type="button">Undo</button>
     <button id="clear" type="button">Clear</button>
     <button id="send" type="button" class="primary">Send now</button>
@@ -28,6 +29,13 @@
     <p id="prompt-question"></p>
     <p id="prompt-hint"><b>1 tap</b> yes &nbsp;·&nbsp; <b>2 taps</b> no</p>
     <div id="prompt-taps"></div>
+  </div>
+
+  <!-- What was just said out loud, so the sentence can be read as well as
+       heard. Sits low enough to coexist with the question prompt above. -->
+  <div id="speech" hidden>
+    <p id="speech-text"></p>
+    <p id="speech-source"></p>
   </div>
 
   <div id="flash"></div>

@@ -8,6 +8,7 @@ Routes:
     GET  /api/config  client settings (idle timeout, background)
     GET  /api/captures recent capture metadata
     GET  /captures/*  the stored PNG and stroke files
+    GET  /tts/*       synthesised speech, served so the API key stays here
     WS   /ws          live channel, shared by tablet and viewers
 """
 
@@ -23,12 +24,22 @@ from fastapi import Body, FastAPI, File, Form, UploadFile, WebSocket, WebSocketD
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import config
-from .storage import store
+from . import config, pipeline, speech
+from .storage import CaptureRecord, store
+
+# Background tasks are held here; asyncio only keeps weak references, so a task
+# without one can be garbage collected mid-flight.
+_background: set[asyncio.Task[Any]] = set()
+
+
+def schedule(coro) -> None:
+    task = asyncio.create_task(coro)
+    _background.add(task)
+    task.add_done_callback(_background.discard)
 
 app = FastAPI(title="Ink Pipeline")
 
-CLIENT_VERSION = "4"
+CLIENT_VERSION = "5"
 
 
 @app.middleware("http")
@@ -203,7 +214,59 @@ async def create_capture(
     await hub.to_viewers({"type": "capture", "record": record.as_dict()})
 
     print(f"[capture] {record.id}.png  {record.stroke_count} strokes  {record.png_bytes:,} bytes")
+
+    # Step 2 runs after this response goes back, so a slow API call cannot hold
+    # up the tablet or risk its upload timing out.
+    schedule(analyse(record, stroke_data.get("strokes", [])))
+
     return JSONResponse({"ok": True, "record": record.as_dict()})
+
+
+async def analyse(record: CaptureRecord, strokes: list[dict[str, Any]]) -> None:
+    payload = pipeline.build_payload(strokes)
+    image = config.CAPTURE_DIR / record.png
+
+    try:
+        text = await asyncio.to_thread(pipeline.process_capture, image, payload)
+    except Exception as exc:  # noqa: BLE001 - a broken analysis must not kill the server
+        print(f"[analysis] {record.id} failed: {exc!r}")
+        return
+
+    if not text:
+        return
+
+    print(f"[analysis] {record.id}: {text}")
+    await hub.to_viewers({"type": "analysis", "id": record.id, "text": text})
+    await speak(record, text)
+
+
+async def speak(record: CaptureRecord, text: str) -> None:
+    """Say `text` on the tablet, then have the user confirm it with a tap."""
+    audio = await asyncio.to_thread(speech.synthesise, text)
+
+    # A null url is not an error: the tablet then uses its own voice engine.
+    await hub.to_tablets({
+        "type": "speak",
+        "id": record.id,
+        "text": text,
+        "url": f"/tts/{audio.name}" if audio else None,
+    })
+
+    try:
+        answer = await ask_tablet(
+            "Did I get that right?",
+            timeout=config.CONFIRM_TIMEOUT_S,
+            context={"capture": record.id, "text": text},
+        )
+    except RuntimeError:
+        print(f"[analysis] {record.id} spoken to nobody: no tablet connected")
+        return
+    except asyncio.TimeoutError:
+        print(f"[analysis] {record.id} left unconfirmed")
+        return
+
+    # The tap itself is already in answers.jsonl, with the capture id attached.
+    print(f"[analysis] {record.id} confirmed: {answer}")
 
 
 async def handle_answer(message: dict[str, Any]) -> None:
@@ -263,5 +326,7 @@ async def websocket_endpoint(socket: WebSocket, role: str = "viewer") -> None:
 
 
 config.CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
+config.TTS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/captures", StaticFiles(directory=config.CAPTURE_DIR), name="captures")
+app.mount("/tts", StaticFiles(directory=config.TTS_DIR), name="tts")
 app.mount("/static", StaticFiles(directory=config.WEB_DIR), name="static")

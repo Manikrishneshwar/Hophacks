@@ -5,8 +5,10 @@ alwaysApply: true
 
 # HopHacks ink pipeline
 
-Tablet draws over LAN, laptop stores the drawing. Read `readME.md` for how it
-works; this file is the state and the working agreements.
+Draw on an Android phone over the LAN; the laptop stores each drawing and runs
+analysis on it. Partly an accessibility tool for stroke patients with tremor and
+limited finger mobility. `readME.md` explains how it works; this file is the
+state and the working agreements.
 
 ## Working agreements
 
@@ -15,24 +17,49 @@ works; this file is the state and the working agreements.
 - Always invoke Python as `.\.venv\Scripts\python.exe`. A bare `python` grabs
   the system interpreter, which lacks the dependencies and has already caused a
   second server to seize port 8000 while the venv one bound to nothing.
-- Verify changes with the scripts in `scripts/` before saying they work.
+- Verify with the scripts in `scripts/` before claiming something works.
+
+## Layout
+
+| Path | Purpose |
+| --- | --- |
+| `run.py` | Launcher: LAN address, QR code, firewall check |
+| `server/config.py` | Settings from env and `.env`, smoothing presets |
+| `server/storage.py` | Disk writes, `index.jsonl`, `answers.jsonl`, DB seam |
+| `server/app.py` | Routes, WebSocket hub, `ask_tablet()`, `analyse()` |
+| `server/pipeline.py` | Step 2 hook, currently returns `SAMPLE_TEXT` |
+| `server/speech.py` | ElevenLabs synthesis, `data/tts/` cache, never raises |
+| `web/canvas.html/js` | Tablet surface: drawing, idle capture, taps, speech |
+| `web/viewer.html/js` | Optional desktop view, purely a listener |
+
+Tests, each starting its own server on a free port: `browser_test.py` (capture
+loop), `tap_test.py` (tap answers, multi-touch), `smoothing_test.py` (tremor
+filter), `pipeline_test.py` (what step 2 receives), `speech_test.py` (synthesis,
+caching, keyless fallback, confirming tap). Also `smoke_test.py`, `ask.py`,
+`show_data.py`, `show_strokes.py` against a running server.
 
 ## Status
 
-**Step 1 is complete and tested.** Capture on 20s inactivity, PNG plus stroke
-JSON plus `index.jsonl` on disk, optional viewer, tap-to-answer, stroke
-start/end tones and vibration, and One Euro tremor smoothing. This is partly an
-accessibility tool for stroke patients with tremor and limited finger mobility.
+**Step 1 is complete and tested.** Capture after 20s of inactivity, PNG plus
+stroke JSON plus `index.jsonl`, optional viewer, tap-to-answer (one tap yes, two
+no), stroke start/end tones and vibration, One Euro tremor smoothing.
 
-**Step 2 is not started.** An API call over each captured image, its text
-spoken on the tablet via ElevenLabs (free tier: 10k credits/month, no shared
-voice library, server-side so the key never reaches the tablet; keep browser
-speech synthesis as fallback). The image API has not been chosen yet. Seams
-already in place: `hub.to_tablets()`, `CaptureRecord.analysis`, and
-`ask_tablet()` for the spoken-result confirmation.
+**Only the API call itself is left in step 2.** `pipeline.process_capture(image,
+data)` prints a summary and returns `SAMPLE_TEXT`; the user replaces its body
+with the real call. `image` is a `Path`; `data` is `{"points": [[x, y], ...]
+flattened across all strokes in drawing order, "strokes": count}`. Called from
+`analyse()` after the upload response, on a worker thread.
 
-**Tiger Data is parked** at the user's request until everything else is done.
-Nothing is wired; only an unused `INK_DATABASE_URL` and `CaptureStore.sinks`.
+**Speech and confirmation are built and tested.** `analyse()` hands the text to
+`speech.synthesise()`, pushes `{"type": "speak", "text", "url"}` to tablets, then
+`ask_tablet("Did I get that right?")`, whose tap lands in `answers.jsonl` with
+the capture id and text in `context`. No API key yet: the user will add
+`ELEVENLABS_API_KEY` to `.env`, and until then the tablet speaks with its own
+`speechSynthesis`. Model still undecided — `eleven_flash_v2_5` by default,
+switchable to `eleven_multilingual_v2` if hackathon credits come through.
+
+**Tiger Data is parked** until everything else is done. Nothing is wired; only
+an unused `INK_DATABASE_URL` and an empty `CaptureStore.sinks`.
 
 **No getter function exists.** Reading data back means `CaptureStore.recent()`,
 the HTTP routes, or the scripts. The user intends to specify one.
@@ -41,16 +68,26 @@ the HTTP routes, or the scripts. The user intends to specify one.
 
 - Bump `CLIENT_VERSION` in **both** `web/canvas.js` and `server/app.py` on any
   frontend change. A tablet's socket silently reconnects after a server
-  restart, so a stale page looks healthy; the version check forces a reload.
+  restart, so a stale page looks healthy while running old code; the version
+  check forces a reload. This has already cost an hour of debugging.
 - The key `strokes` is a list of stroke dicts inside a capture's `.json`, but a
   filename string inside `index.jsonl`. Same name, different type.
-- Stroke points are `[x, y, pressure, t]` in **CSS pixels**; the PNG is
-  `dpr` times larger. `t` is a shared clock across all strokes in a capture.
-- The user draws with a finger on an **Android phone** (iPad was dropped: no
-  vibration API and the tones did not work). `tool` is `touch`, pressure 0.5.
-- No sound or vibration on the first stroke after a page load, by browser
-  policy. The user has decided to live with it; do not "fix" it unprompted.
+- Stroke points are `[x, y, pressure, t]` in **CSS pixels**; the PNG is `dpr`
+  times larger. `t` is a shared clock across all strokes in one capture.
+- Pressure is always 0.5 and `tool` is always `touch`: finger, not stylus.
 - Smoothed strokes keep a `raw` array of unfiltered points. Never drop it; the
   tremor is potentially the clinically interesting signal.
 - Tremor smoothing needs a far smaller One Euro `beta` than the usual examples,
   because tremor is fast and a large beta raises the cutoff during the shake.
+  Filter each axis with its own speed, not a shared one.
+- No sound or vibration on the first stroke after a page load, by browser
+  policy. The user has decided to live with it; do not "fix" it unprompted.
+- iPadOS has no `navigator.vibrate`. Android is the only target.
+- Speech must never be able to fail loudly. `synthesise()` returns None instead
+  of raising, and a null `url` tells the tablet to speak the text itself.
+- The free ElevenLabs tier requires the "Powered by ElevenLabs" line, which the
+  canvas shows only when their audio actually played.
+- `ELEVENLABS_BASE_URL` exists so `speech_test.py` can point synthesis at a stub.
+  Nothing else should need it.
+- Redirecting a server's stdout to a file buffers it; use `python -u` when
+  capturing output for inspection.

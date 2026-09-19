@@ -28,6 +28,7 @@ _load_env_file()
 WEB_DIR = ROOT / "web"
 DATA_DIR = Path(os.environ.get("INK_DATA_DIR", ROOT / "data"))
 CAPTURE_DIR = DATA_DIR / "captures"
+TTS_DIR = DATA_DIR / "tts"
 INDEX_PATH = DATA_DIR / "index.jsonl"
 ANSWERS_PATH = DATA_DIR / "answers.jsonl"
 
@@ -74,3 +75,26 @@ if SMOOTHING not in SMOOTHING_PRESETS:
 # Step 2 seam: when a database URL is present the storage layer will also write
 # capture metadata to Postgres/TigerData. Unset means disk-only.
 DATABASE_URL = os.environ.get("INK_DATABASE_URL", "")
+
+# ---------------------------------------------------------------- speech ----
+#
+# Synthesis happens here rather than on the tablet so the API key never leaves
+# the laptop. With no key the tablet speaks the text with its own voice engine,
+# so the pipeline is never silent.
+
+SPEECH_ENABLED = os.environ.get("INK_SPEECH", "1") == "1"
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+# Rachel, one of the premade voices available on every plan. The shared voice
+# library needs a paid plan, so stay on the premade list until there is one.
+ELEVENLABS_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
+# flash costs about half a credit per character and is the quickest to return;
+# eleven_multilingual_v2 sounds warmer at a full credit. One .env line switches.
+ELEVENLABS_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_flash_v2_5")
+ELEVENLABS_TIMEOUT_S = float(os.environ.get("ELEVENLABS_TIMEOUT_S", "20"))
+# Overridable so a test can point synthesis at a stub instead of the real API.
+ELEVENLABS_BASE_URL = os.environ.get("ELEVENLABS_BASE_URL", "https://api.elevenlabs.io")
+
+# How long a spoken sentence waits to be confirmed by a tap. Shorter than the
+# ask_tablet default because an unanswered question is replaced by the next
+# capture anyway, and a stale question on screen is worse than none.
+CONFIRM_TIMEOUT_S = float(os.environ.get("INK_CONFIRM_TIMEOUT_S", "60"))
