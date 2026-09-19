@@ -23,7 +23,7 @@ state and the working agreements.
 
 | Path | Purpose |
 | --- | --- |
-| `run.py` | Launcher: LAN address, QR code, firewall check |
+| `run.py` | Launcher: LAN address, QR codes for tablet and caretaker |
 | `server/config.py` | Settings from env and `.env`, smoothing presets |
 | `server/storage.py` | Disk writes, `index.jsonl`, `answers.jsonl`, DB seam |
 | `server/app.py` | Routes, WebSocket hub, `ask_tablet()`, `analyse()` |
@@ -31,11 +31,13 @@ state and the working agreements.
 | `server/speech.py` | ElevenLabs synthesis, `data/tts/` cache, never raises |
 | `web/canvas.html/js` | Tablet surface: drawing, idle capture, taps, speech |
 | `web/viewer.html/js` | Optional desktop view, purely a listener |
+| `web/caretaker.html/js` | Caregiver phone: finished drawing, prompts, yes/no |
 
 Tests, each starting its own server on a free port: `browser_test.py` (capture
 loop), `tap_test.py` (tap answers, multi-touch), `smoothing_test.py` (tremor
 filter), `pipeline_test.py` (what step 2 receives), `speech_test.py` (synthesis,
-caching, keyless fallback, confirming tap), `recognize_test.py` (Gemini ranking
+caching, keyless fallback, confirming tap), `caretaker_test.py` (caregiver phone
+gets image + prompts + yes/no), `recognize_test.py` (Gemini ranking
 harness, timeout fallback), `eval_benchmark.py` (labeled drawings, ranking
 report for judges). Also `smoke_test.py`, `ask.py`,
 `show_data.py`, `show_strokes.py` against a running server.
@@ -67,6 +69,13 @@ the capture id and text in `context`. No ElevenLabs key yet: until
 `speechSynthesis`. Model still undecided — `eleven_flash_v2_5` by default,
 switchable to `eleven_multilingual_v2` if hackathon credits come through.
 
+**Caretaker phone is wired.** `/caretaker` is a home-screen page on the same
+LAN. After a capture is spoken and confirmed, `hub.to_caretakers` pushes the
+PNG URL, spoken prompts, and yes/no. History is `/api/caretaker/events`. True
+lock-screen push needs HTTPS, so alerts are in-app plus chime/vibrate while
+the page stays open. `CARETAKER_VERSION` in `web/caretaker.js` and
+`server/app.py` must match.
+
 **Tiger Data is parked** until everything else is done. Nothing is wired; only
 an unused `INK_DATABASE_URL` and an empty `CaptureStore.sinks`.
 
@@ -79,6 +88,9 @@ the HTTP routes, or the scripts. The user intends to specify one.
   frontend change. A tablet's socket silently reconnects after a server
   restart, so a stale page looks healthy while running old code; the version
   check forces a reload. This has already cost an hour of debugging.
+- Same idea for the caregiver phone: bump `CARETAKER_VERSION` in
+  `web/caretaker.js` and `server/app.py` together. Keep `/caretaker` open;
+  lock-screen push is not available over plain HTTP on the LAN.
 - The key `strokes` is a list of stroke dicts inside a capture's `.json`, but a
   filename string inside `index.jsonl`. Same name, different type.
 - Stroke points are `[x, y, pressure, t]` in **CSS pixels**; the PNG is `dpr`

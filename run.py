@@ -105,9 +105,14 @@ def main() -> None:
     print(f"  second brain   http://localhost:{config.PORT}/brain")
 
     if tablet_url:
+        caretaker_url = f"http://{ip}:{config.PORT}/caretaker"
         print(f"  tablet         {tablet_url}")
+        print(f"  caretaker      {caretaker_url}")
         print()
+        print("  tablet")
         qr(tablet_url)
+        print("  caretaker phone — add this page to the home screen and keep it open")
+        qr(caretaker_url)
     else:
         print("  tablet         could not detect a LAN address; are you on Wi-Fi?")
 

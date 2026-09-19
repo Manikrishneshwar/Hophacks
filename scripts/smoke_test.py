@@ -96,11 +96,17 @@ def main() -> int:
     if listing[0]["id"] != record["id"]:
         failures.append("new capture is not at the top of the index")
 
-    for page in ("/canvas", "/viewer", "/brain", "/static/canvas.js", "/static/viewer.js",
-                 "/static/brain.js", "/static/graph.js", "/static/style.css"):
+    for page in ("/canvas", "/viewer", "/brain", "/caretaker", "/static/canvas.js",
+                 "/static/viewer.js", "/static/brain.js", "/static/graph.js",
+                 "/static/caretaker.js", "/static/style.css"):
         if not get(page):
             failures.append(f"{page} returned nothing")
-    print("pages            canvas, viewer, brain and assets all serve")
+    print("pages            canvas, viewer, brain, caretaker and assets all serve")
+
+    listing = json.loads(get("/api/caretaker/events"))
+    if "events" not in listing or "patient" not in listing:
+        failures.append("/api/caretaker/events is missing events or patient")
+    print(f"caretaker        {len(listing.get('events', []))} event(s)")
 
     if failures:
         print("\nFAILED:")

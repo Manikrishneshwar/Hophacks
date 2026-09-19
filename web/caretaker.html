@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0f13">
+<meta name="apple-mobile-web-app-title" content="Caretaker">
+<title>Caretaker</title>
+<link rel="manifest" href="/static/manifest-caretaker.json">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="caretaker">
+  <header>
+    <span id="dot" class="dot" title="connection"></span>
+    <div class="caretaker-title">
+      <h1>Caretaker</h1>
+      <span class="meta" id="patient">waiting for drawings</span>
+    </div>
+    <span class="spacer"></span>
+    <button id="alerts" type="button">Enable alerts</button>
+  </header>
+
+  <p id="hint">Keep this page open on the same Wi-Fi as the pad. After each drawing is confirmed you get the image, what was said, and the yes/no tap.</p>
+
+  <div id="banner" hidden></div>
+  <div id="feed"><div class="empty">No events yet.</div></div>
+
+  <script src="/static/caretaker.js"></script>
+</body>
+</html>

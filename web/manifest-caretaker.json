@@ -1,0 +1,10 @@
+{
+  "name": "Ink Caretaker",
+  "short_name": "Caretaker",
+  "start_url": "/caretaker",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0e0f13",
+  "theme_color": "#0e0f13",
+  "description": "Live alerts when the drawing pad finishes a request."
+}

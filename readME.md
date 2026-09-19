@@ -61,6 +61,13 @@ The desktop view at <http://localhost:8000/viewer> mirrors strokes live and
 shows previous captures. It is entirely optional — captures are stored whether
 or not it is open.
 
+The caretaker phone at `/caretaker` is a separate page for the caregiver. After
+each drawing is spoken and confirmed, that phone gets the PNG, the lines that
+were said, and the yes/no tap. Startup prints a second QR code for it. On
+Android Chrome, use **Add to Home Screen** and keep the page open on the same
+Wi-Fi; lock-screen push needs HTTPS, so the alert is a chime, vibration, and
+the card on that page.
+
 The second-brain view at <http://localhost:8000/brain> is the patient memory
 graph: people, intents, drawings, and days linked together. Use **Load sample
 week** if you want a populated graph for judges before any live captures.
@@ -316,6 +323,7 @@ overridden from the shell.
 .\.venv\Scripts\python.exe scripts\recognize_test.py # ranking harness, no Gemini credits
 .\.venv\Scripts\python.exe scripts\eval_benchmark.py selftest # catalog, scoring, HTML report
 .\.venv\Scripts\python.exe scripts\speech_test.py    # synthesis, caching, fallback, confirm
+.\.venv\Scripts\python.exe scripts\caretaker_test.py # caregiver phone gets image + yes/no
 .\.venv\Scripts\python.exe scripts\gemini_key_test.py # GEMINI_API_KEY actually reaches Gemini
 .\.venv\Scripts\python.exe scripts\smoke_test.py     # HTTP path, against a running server
 .\.venv\Scripts\python.exe scripts\show_data.py      # list what has been captured
@@ -327,7 +335,7 @@ The browser test needs Chromium: `python -m playwright install chromium`.
 ## Layout
 
 ```
-run.py              launcher: LAN address, QR code, firewall check
+run.py              launcher: LAN address, QR codes for tablet and caretaker
 server/config.py    settings
 server/storage.py   disk writes, the JSONL index, and the database seam
 server/app.py       routes and the WebSocket fan-out
@@ -335,6 +343,7 @@ server/pipeline.py  the step 2 hook: drawing in, text out
 server/speech.py    ElevenLabs synthesis and its on-disk cache
 web/canvas.html     tablet drawing surface
 web/viewer.html     optional desktop view
+web/caretaker.html  caregiver phone feed and alerts
 web/brain.html      second-brain memory graph
 memory_graph.py     nodes and weighted links behind /brain
 ```

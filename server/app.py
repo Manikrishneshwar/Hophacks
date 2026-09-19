@@ -5,12 +5,14 @@ Routes:
     GET  /canvas      the tablet drawing surface
     GET  /viewer      optional desktop view; nothing depends on it being open
     GET  /brain       second-brain memory graph for judges and caregivers
+    GET  /caretaker   caregiver phone: drawing + prompts + yes/no as they finish
     POST /api/capture receive a finished drawing
     GET  /api/config  client settings (idle timeout, background)
     GET  /api/captures recent capture metadata
+    GET  /api/caretaker/events history for the caregiver phone
     GET  /captures/*  the stored PNG and stroke files
     GET  /tts/*       synthesised speech, served so the API key stays here
-    WS   /ws          live channel, shared by tablet and viewers
+    WS   /ws          live channel, shared by tablet, viewers, and caretakers
 """
 
 from __future__ import annotations
@@ -50,6 +52,7 @@ from memory_graph import MemoryGraph  # noqa: E402
 app = FastAPI(title="Ink Pipeline")
 
 CLIENT_VERSION = "9"
+CARETAKER_VERSION = "1"
 
 
 @app.middleware("http")
@@ -61,7 +64,9 @@ async def no_stale_frontend(request, call_next):
     healthy while running code that predates the restart.
     """
     response = await call_next(request)
-    if request.url.path.startswith("/static") or request.url.path in ("/", "/canvas", "/viewer", "/brain"):
+    if request.url.path.startswith("/static") or request.url.path in (
+        "/", "/canvas", "/viewer", "/brain", "/caretaker",
+    ):
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
     return response
 
@@ -69,23 +74,32 @@ async def no_stale_frontend(request, call_next):
 class Hub:
     """Fan-out of live events to whoever happens to be listening.
 
-    Viewers are strictly optional. With nobody connected this degrades to a
-    no-op, which is why the capture path never waits on it.
+    Viewers and caretakers are strictly optional. With nobody connected this
+    degrades to a no-op, which is why the capture path never waits on it.
+    Caretakers are a separate bucket so they do not receive live stroke
+    mirroring, only the finished drawing plus its spoken lines and taps.
     """
 
     def __init__(self) -> None:
         self._viewers: set[WebSocket] = set()
         self._tablets: set[WebSocket] = set()
+        self._caretakers: set[WebSocket] = set()
         self._lock = asyncio.Lock()
 
     async def join(self, socket: WebSocket, role: str) -> None:
         async with self._lock:
-            (self._tablets if role == "tablet" else self._viewers).add(socket)
+            if role == "tablet":
+                self._tablets.add(socket)
+            elif role == "caretaker":
+                self._caretakers.add(socket)
+            else:
+                self._viewers.add(socket)
 
     async def leave(self, socket: WebSocket) -> None:
         async with self._lock:
             self._viewers.discard(socket)
             self._tablets.discard(socket)
+            self._caretakers.discard(socket)
 
     @property
     def viewer_count(self) -> int:
@@ -95,12 +109,19 @@ class Hub:
     def tablet_count(self) -> int:
         return len(self._tablets)
 
+    @property
+    def caretaker_count(self) -> int:
+        return len(self._caretakers)
+
     async def to_viewers(self, message: dict[str, Any]) -> None:
         await self._send(list(self._viewers), message)
 
     async def to_tablets(self, message: dict[str, Any]) -> None:
         """Push speech and questions to connected tablets."""
         await self._send(list(self._tablets), message)
+
+    async def to_caretakers(self, message: dict[str, Any]) -> None:
+        await self._send(list(self._caretakers), message)
 
     async def _send(self, sockets: list[WebSocket], message: dict[str, Any]) -> None:
         if not sockets:
@@ -120,6 +141,134 @@ hub = Hub()
 
 # Questions waiting on a tap from the tablet, keyed by question id.
 pending_questions: dict[str, asyncio.Future[str]] = {}
+
+
+class CaretakerLog:
+    """Spoken lines and taps for one drawing, pushed when that event finishes."""
+
+    def __init__(self, record: CaptureRecord, kind: str = "request") -> None:
+        self.record = record
+        self.kind = kind
+        self.prompts: list[str] = []
+        self.answers: list[dict[str, Any]] = []
+        self.call: dict[str, Any] | None = None
+
+    def spoken(self, text: str) -> None:
+        line = (text or "").strip()
+        if line:
+            self.prompts.append(line)
+
+    def answered(self, question: str, answer: str | None, prompt: str | None = None) -> None:
+        self.answers.append({
+            "question": question,
+            "answer": answer,
+            "prompt": prompt,
+        })
+
+    def to_message(self, result: pipeline.CaptureResult | None, *, confirmed: bool) -> dict[str, Any]:
+        taps = [row["answer"] for row in self.answers if row.get("answer") in ("yes", "no")]
+        if confirmed:
+            answer: str | None = "yes"
+        elif taps:
+            answer = "no"
+        else:
+            answer = None
+        message = {
+            "type": "caretaker",
+            "kind": "call" if self.call else self.kind,
+            "id": self.record.id,
+            "created_at": self.record.created_at,
+            "image": f"/captures/{self.record.png}",
+            "text": (result.text if result else None) or (self.prompts[-1] if self.prompts else None),
+            "tag": result.tag_id if result else None,
+            "detail": result.detail if result else None,
+            "confirmed": confirmed,
+            "answer": answer,
+            "prompts": list(self.prompts),
+            "answers": list(self.answers),
+        }
+        if self.call:
+            message["call"] = self.call
+        return message
+
+
+def _patient_brief() -> dict[str, Any]:
+    path = config.ROOT / "patient_data.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    info = data.get("caretaker") if isinstance(data.get("caretaker"), dict) else {}
+    return {
+        "name": str(data.get("preferred_name") or data.get("name") or "the patient"),
+        "full_name": str(data.get("name") or ""),
+        "caretaker": str(info.get("name") or ""),
+    }
+
+
+def _caretaker_history(limit: int = 30) -> list[dict[str, Any]]:
+    """Rebuild finished events from disk so a late-opening phone is not empty."""
+    captures = store.recent(limit)
+    answers = store.recent_answers(max(limit * 8, 40))
+    by_id: dict[str, list[dict[str, Any]]] = {}
+    for entry in answers:
+        capture_id = str((entry.get("context") or {}).get("capture") or "")
+        if capture_id:
+            by_id.setdefault(capture_id, []).append(entry)
+
+    events: list[dict[str, Any]] = []
+    for rec in captures:
+        analysis = rec.get("analysis") or {}
+        rec_answers = list(reversed(by_id.get(rec["id"], [])))
+        if not analysis and not rec_answers:
+            continue
+        prompts: list[str] = []
+        answer_rows: list[dict[str, Any]] = []
+        for entry in rec_answers:
+            spoken = (entry.get("context") or {}).get("text")
+            if spoken and spoken not in prompts:
+                prompts.append(str(spoken))
+            answer_rows.append({
+                "question": entry.get("question"),
+                "answer": entry.get("answer"),
+                "prompt": spoken,
+            })
+        text = analysis.get("text")
+        if text and text not in prompts:
+            prompts.append(str(text))
+        confirmed = analysis.get("confirmed")
+        if confirmed is True:
+            answer: str | None = "yes"
+        elif confirmed is False and any(row.get("answer") in ("yes", "no") for row in answer_rows):
+            answer = "no"
+        else:
+            answer = None
+        events.append({
+            "type": "caretaker",
+            "kind": "request",
+            "id": rec["id"],
+            "created_at": rec.get("created_at"),
+            "image": f"/captures/{rec['png']}",
+            "text": text,
+            "tag": analysis.get("tag"),
+            "detail": analysis.get("detail"),
+            "confirmed": confirmed,
+            "answer": answer,
+            "prompts": prompts,
+            "answers": answer_rows,
+        })
+    return events
+
+
+async def push_caretaker(
+    log: CaretakerLog,
+    result: pipeline.CaptureResult | None,
+    *,
+    confirmed: bool,
+) -> None:
+    message = log.to_message(result, confirmed=confirmed)
+    print(f"[caretaker] {message['id']}  {message['answer'] or '—'}  {message.get('text') or ''}")
+    await hub.to_caretakers(message)
 
 
 async def ask_tablet(question: str, timeout: float = 120.0, context: dict[str, Any] | None = None) -> str:
@@ -168,6 +317,11 @@ async def viewer_page() -> FileResponse:
 @app.get("/brain")
 async def brain_page() -> FileResponse:
     return FileResponse(config.WEB_DIR / "brain.html")
+
+
+@app.get("/caretaker")
+async def caretaker_page() -> FileResponse:
+    return FileResponse(config.WEB_DIR / "caretaker.html")
 
 
 def _history_graph() -> MemoryGraph:
@@ -249,6 +403,11 @@ async def list_captures(limit: int = 50) -> dict[str, Any]:
     return {"captures": store.recent(limit)}
 
 
+@app.get("/api/caretaker/events")
+async def caretaker_events(limit: int = 30) -> dict[str, Any]:
+    return {"patient": _patient_brief(), "events": _caretaker_history(limit)}
+
+
 @app.post("/api/capture")
 async def create_capture(
     image: UploadFile = File(...),
@@ -306,29 +465,34 @@ async def analyse(record: CaptureRecord, strokes: list[dict[str, Any]]) -> None:
 
 async def offer_game(record: CaptureRecord, result: pipeline.CaptureResult) -> None:
     """A handwritten 1 or 2 can start the shape-drawing game."""
+    log = CaretakerLog(record, kind="game")
     answer = await speak_and_ask(
         record,
         result.text,
         "Play a game?",
         tag_id="play",
+        log=log,
     )
     if answer != "yes":
         if answer == "no":
-            await speak_only(record, "Okay.")
+            await speak_only(record, "Okay.", log=log)
         await persist_analysis(record, result, confirmed=False)
+        await push_caretaker(log, result, confirmed=False)
         await push_game(None)
         return
 
     game = shape_game.start(record.session_id, digit=result.detail or "1")
     print(f"[game] {record.session_id} start {game.target} (digit {result.detail})")
-    await speak_game(record, game.prompt(), game.target)
+    await speak_game(record, game.prompt(), game.target, log=log)
     await persist_analysis(record, result, confirmed=True)
+    await push_caretaker(log, result, confirmed=True)
 
 
 async def play_round(record: CaptureRecord, image: Any) -> None:
     game = shape_game.get(record.session_id)
     if game is None:
         return
+    log = CaretakerLog(record, kind="game")
     target = game.target
     graded = await asyncio.to_thread(pipeline.grade_shape, image, target)
     if graded["match"]:
@@ -338,22 +502,25 @@ async def play_round(record: CaptureRecord, image: Any) -> None:
         spoken, done = shape_game.fail(record.session_id, graded.get("spoken") or "")
         print(f"[game] {record.session_id} miss {target}  {spoken}")
 
-    next_target = None if done else (shape_game.get(record.session_id).target if shape_game.get(record.session_id) else None)
-    await speak_game(record, spoken, next_target)
-    await persist_analysis(
-        record,
-        pipeline.CaptureResult(
-            text=spoken,
-            tag_id="game",
-            detail=target,
-        ),
-        confirmed=graded["match"],
+    result = pipeline.CaptureResult(
+        text=spoken,
+        tag_id="game",
+        detail=target,
     )
+    next_target = None if done else (shape_game.get(record.session_id).target if shape_game.get(record.session_id) else None)
+    await speak_game(record, spoken, next_target, log=log)
+    await persist_analysis(record, result, confirmed=graded["match"])
+    await push_caretaker(log, result, confirmed=graded["match"])
     await hub.to_viewers({"type": "analysis", "id": record.id, "text": spoken})
 
 
-async def speak_game(record: CaptureRecord, text: str, target: str | None) -> None:
-    await speak_only(record, text)
+async def speak_game(
+    record: CaptureRecord,
+    text: str,
+    target: str | None,
+    log: CaretakerLog | None = None,
+) -> None:
+    await speak_only(record, text, log=log)
     await push_game(target)
 
 
@@ -373,6 +540,7 @@ async def push_graphs() -> None:
 
 async def converse(record: CaptureRecord, result: pipeline.CaptureResult) -> None:
     """Speak a guess, confirm it, retry a couple of times, then write memory."""
+    log = CaretakerLog(record)
     candidates = list(result.candidates)
     guesses = candidates[: pipeline.MAX_GUESSES] if candidates else [None]
     accepted = False
@@ -400,9 +568,12 @@ async def converse(record: CaptureRecord, result: pipeline.CaptureResult) -> Non
             await hub.to_viewers({"type": "analysis", "id": record.id, "text": spoken})
 
         question = "Did I get that right?" if index == 0 else "Is this better?"
-        answer = await speak_and_ask(record, spoken, question, tag_id=result.tag_id)
+        answer = await speak_and_ask(
+            record, spoken, question, tag_id=result.tag_id, log=log,
+        )
         if answer is None:
             await persist_analysis(record, result, confirmed=False)
+            await push_caretaker(log, result, confirmed=False)
             return
         if answer == "yes":
             accepted = True
@@ -410,9 +581,9 @@ async def converse(record: CaptureRecord, result: pipeline.CaptureResult) -> Non
         print(f"[analysis] {record.id} rejected guess {index + 1}: {spoken}")
 
     if accepted:
-        await refine_details(record, result)
+        await refine_details(record, result, log=log)
         if (result.detail or "").lower() in {"call", "caretaker"}:
-            await place_caretaker_call(record, result)
+            await place_caretaker_call(record, result, log=log)
         else:
             closing = await asyncio.to_thread(
                 pipeline.closing_for,
@@ -422,12 +593,15 @@ async def converse(record: CaptureRecord, result: pipeline.CaptureResult) -> Non
             )
             if closing:
                 print(f"[analysis] {record.id} closing: {closing}")
-                await speak_only(record, closing)
+                await speak_only(record, closing, log=log)
 
     if not accepted and candidates:
         spoken = "I am not sure. Could you draw that again?"
         result.text = spoken
-        await speak_only(record, spoken)
+        await speak_only(record, spoken, log=log)
+
+    await persist_analysis(record, result, confirmed=accepted)
+    await push_caretaker(log, result, confirmed=accepted)
 
     journal = ""
     try:
@@ -437,7 +611,6 @@ async def converse(record: CaptureRecord, result: pipeline.CaptureResult) -> Non
             accepted=accepted,
             capture_id=record.id,
         )
-        await persist_analysis(record, result, confirmed=accepted)
         await push_graphs()
     except Exception as exc:  # noqa: BLE001
         print(f"[analysis] {record.id} memory update failed: {exc!r}")
@@ -448,7 +621,11 @@ async def converse(record: CaptureRecord, result: pipeline.CaptureResult) -> Non
     print(f"[analysis] {record.id} confirmed: {'yes' if accepted else 'no'}")
 
 
-async def refine_details(record: CaptureRecord, result: pipeline.CaptureResult) -> None:
+async def refine_details(
+    record: CaptureRecord,
+    result: pipeline.CaptureResult,
+    log: CaretakerLog | None = None,
+) -> None:
     """After a yes, ask only what a real assistant would still need to know."""
     if not pipeline.needs_followup(result.tag_id, result.text, result.detail):
         return
@@ -480,6 +657,7 @@ async def refine_details(record: CaptureRecord, result: pipeline.CaptureResult) 
             line,
             item["question"],
             tag_id=result.tag_id,
+            log=log,
         )
         if answer is None:
             return
@@ -491,14 +669,20 @@ async def refine_details(record: CaptureRecord, result: pipeline.CaptureResult) 
         print(f"[analysis] {record.id} not {item['detail']}")
 
 
-async def place_caretaker_call(record: CaptureRecord, result: pipeline.CaptureResult) -> None:
+async def place_caretaker_call(
+    record: CaptureRecord,
+    result: pipeline.CaptureResult,
+    log: CaretakerLog | None = None,
+) -> None:
     info = pipeline.caretaker()
     name = str(info.get("name") or "your caretaker").strip()
     phone = str(info.get("phone") or "").strip()
     relation = str(info.get("relation") or "").strip()
     spoken = f"Calling {name} now."
     print(f"[call] {name}  {phone or '(no number)'}")
-    await speak_only(record, spoken)
+    if log is not None:
+        log.call = {"name": name, "phone": phone, "relation": relation}
+    await speak_only(record, spoken, log=log)
     await hub.to_tablets({
         "type": "call",
         "name": name,
@@ -544,7 +728,13 @@ async def persist_analysis(
     )
 
 
-async def speak_only(record: CaptureRecord, text: str) -> None:
+async def speak_only(
+    record: CaptureRecord,
+    text: str,
+    log: CaretakerLog | None = None,
+) -> None:
+    if log is not None:
+        log.spoken(text)
     audio = await asyncio.to_thread(speech.synthesise, text)
     await hub.to_tablets({
         "type": "speak",
@@ -560,20 +750,28 @@ async def speak_and_ask(
     question: str,
     *,
     tag_id: str | None = None,
+    log: CaretakerLog | None = None,
 ) -> str | None:
-    await speak_only(record, text)
+    await speak_only(record, text, log=log)
     try:
-        return await ask_tablet(
+        answer = await ask_tablet(
             question,
             timeout=config.CONFIRM_TIMEOUT_S,
             context={"capture": record.id, "text": text, "tag": tag_id},
         )
     except RuntimeError:
         print(f"[analysis] {record.id} spoken to nobody: no tablet connected")
+        if log is not None:
+            log.answered(question, None, text)
         return None
     except asyncio.TimeoutError:
         print(f"[analysis] {record.id} left unconfirmed")
+        if log is not None:
+            log.answered(question, None, text)
         return None
+    if log is not None:
+        log.answered(question, answer, text)
+    return answer
 
 
 async def handle_answer(message: dict[str, Any]) -> None:
@@ -610,6 +808,13 @@ async def websocket_endpoint(socket: WebSocket, role: str = "viewer") -> None:
                 "type": "welcome",
                 "viewers": hub.viewer_count,
                 "version": CLIENT_VERSION,
+            }))
+        elif role == "caretaker":
+            await socket.send_text(json.dumps({
+                "type": "welcome",
+                "role": "caretaker",
+                "version": CARETAKER_VERSION,
+                "patient": _patient_brief(),
             }))
         else:
             await socket.send_text(json.dumps({"type": "welcome", "role": role}))
