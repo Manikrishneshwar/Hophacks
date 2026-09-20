@@ -31,7 +31,7 @@ working agreements.
 | `server/storage.py` | Disk writes, `index.jsonl`, `answers.jsonl`, DB seam |
 | `server/app.py` | Routes, WebSocket hub, `ask_tablet()`, `analyse()` |
 | `server/pipeline.py` | Step 2 hook: `IntentRecognizer`, falls back to `SAMPLE_TEXT` |
-| `server/speech.py` | ElevenLabs synthesis, `data/tts/` cache, never raises |
+| `server/speech.py` | ElevenLabs synthesis, in-memory clips, never raises |
 | `stroke_geometry.py` | LLM-free 1 / 2 detection and circle/square/triangle grading |
 | `local_vision.py` | Ollama-backed reading of the PNG when the cloud vendors fail |
 | `xai_backend.py` | Grok over plain HTTP, between the Gemini chain and the local model |

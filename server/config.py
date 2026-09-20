@@ -28,7 +28,6 @@ _load_env_file()
 WEB_DIR = ROOT / "web"
 DATA_DIR = Path(os.environ.get("INK_DATA_DIR", ROOT / "data"))
 CAPTURE_DIR = DATA_DIR / "captures"
-TTS_DIR = DATA_DIR / "tts"
 INDEX_PATH = DATA_DIR / "index.jsonl"
 ANSWERS_PATH = DATA_DIR / "answers.jsonl"
 

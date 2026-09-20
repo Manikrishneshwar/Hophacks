@@ -12,7 +12,7 @@ Routes:
     GET  /api/caretaker/events history for the caregiver phone
     GET  /api/caretaker/stats  today's confirmed request counts
     GET  /captures/*  the stored PNG and stroke files
-    GET  /tts/*       synthesised speech, served so the API key stays here
+    GET  /tts/*       in-memory speech clip, so the API key stays here
     WS   /ws          live channel, shared by tablet, viewers, and caretakers
 """
 
@@ -27,7 +27,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import Body, FastAPI, File, Form, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import config, pipeline, shape_game, speech
@@ -405,6 +405,15 @@ async def memory_graph_demo() -> dict[str, Any]:
     }
     await hub.to_viewers({"type": "graph", "daily": payload["daily"], "history": payload["history"]})
     return payload
+
+
+@app.get("/tts/{name}")
+async def tts_clip(name: str) -> Response:
+    """Serve a clip synthesised in this process. Nothing is read from disk."""
+    clip = speech.get(name)
+    if clip is None:
+        return Response(status_code=404)
+    return Response(content=clip.audio, media_type="audio/mpeg")
 
 
 @app.get("/api/config")
@@ -894,7 +903,5 @@ async def websocket_endpoint(socket: WebSocket, role: str = "viewer") -> None:
 
 
 config.CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
-config.TTS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/captures", StaticFiles(directory=config.CAPTURE_DIR), name="captures")
-app.mount("/tts", StaticFiles(directory=config.TTS_DIR), name="tts")
 app.mount("/static", StaticFiles(directory=config.WEB_DIR), name="static")

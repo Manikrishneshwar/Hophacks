@@ -1,13 +1,15 @@
-"""Turn step 2's text into an audio file the tablet can play.
+"""Turn step 2's text into audio the tablet can play.
 
-`synthesise` is deliberately total: it returns a path when there is audio and
+`synthesise` is deliberately total: it returns a clip when there is audio and
 None when there is not, and never raises. A missing key, a dead network or a
 refused request all end up as None, which the tablet reads as "say this with
 your own voice engine". Losing the nice voice is a cosmetic failure; going
 silent is not.
 
-Files are cached under `data/tts/` keyed by text, voice and model, so repeating
-a sentence during a demo costs no credits.
+Clips live in this process only. The pad plays them from `/tts/<id>` and they
+are forgotten on restart. Repeating a sentence in the same run reuses the
+bytes so a demo does not spend credits twice. Nothing is written under
+`data/tts/`.
 """
 
 from __future__ import annotations
@@ -16,7 +18,7 @@ import hashlib
 import json
 import urllib.error
 import urllib.request
-from pathlib import Path
+from dataclasses import dataclass
 
 from . import config
 
@@ -27,17 +29,41 @@ OUTPUT_FORMAT = "mp3_44100_128"
 # similarity keeps it recognisably the chosen voice.
 VOICE_SETTINGS = {"stability": 0.45, "similarity_boost": 0.8}
 
+# A long session should not keep every line. Oldest clips drop first.
+_MAX_CLIPS = 32
 
-def cache_path(text: str) -> Path:
-    """Where `text` would be cached. Voice and model are part of the key, so
-    changing either in `.env` produces new files instead of stale audio."""
+
+@dataclass(frozen=True)
+class SpeechClip:
+    name: str
+    audio: bytes
+
+
+_clips: dict[str, SpeechClip] = {}
+
+
+def clip_name(text: str) -> str:
+    """Stable id for a sentence. Voice and model are part of the key."""
     key = f"{config.ELEVENLABS_MODEL}\n{config.ELEVENLABS_VOICE_ID}\n{text}"
     digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
-    return config.TTS_DIR / f"{digest}.mp3"
+    return f"{digest}.mp3"
 
 
-def synthesise(text: str) -> Path | None:
-    """Return a playable MP3 for `text`, or None if the tablet must speak it."""
+def get(name: str) -> SpeechClip | None:
+    return _clips.get(name)
+
+
+def _remember(clip: SpeechClip) -> SpeechClip:
+    _clips[clip.name] = clip
+    extra = len(_clips) - _MAX_CLIPS
+    if extra > 0:
+        for key in list(_clips)[:extra]:
+            del _clips[key]
+    return clip
+
+
+def synthesise(text: str) -> SpeechClip | None:
+    """Return playable MP3 bytes for `text`, or None if the tablet must speak it."""
     text = (text or "").strip()
     if not text:
         return None
@@ -47,10 +73,11 @@ def synthesise(text: str) -> Path | None:
         print("[speech] no ELEVENLABS_API_KEY, leaving it to the tablet")
         return None
 
-    path = cache_path(text)
-    if path.exists() and path.stat().st_size > 0:
-        print(f"[speech] cached  {path.name}  {len(text)} chars, 0 credits")
-        return path
+    name = clip_name(text)
+    cached = _clips.get(name)
+    if cached is not None:
+        print(f"[speech] cached  {name}  {len(text)} chars, 0 credits")
+        return cached
 
     url = (f"{config.ELEVENLABS_BASE_URL.rstrip('/')}/v1/text-to-speech/"
            f"{config.ELEVENLABS_VOICE_ID}?output_format={OUTPUT_FORMAT}")
@@ -81,13 +108,7 @@ def synthesise(text: str) -> Path | None:
         print("[speech] ElevenLabs returned no audio")
         return None
 
-    # Write beside the target and rename, so a half-written file is never
-    # served or mistaken for a cache hit.
-    config.TTS_DIR.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".part")
-    temporary.write_bytes(audio)
-    temporary.replace(path)
-
-    print(f"[speech] {path.name}  {len(text)} chars, {len(audio):,} bytes, "
+    clip = _remember(SpeechClip(name=name, audio=audio))
+    print(f"[speech] {name}  {len(text)} chars, {len(audio):,} bytes, "
           f"model {config.ELEVENLABS_MODEL}")
-    return path
+    return clip

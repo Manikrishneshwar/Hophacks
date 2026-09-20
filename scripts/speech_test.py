@@ -3,9 +3,9 @@
     python scripts/speech_test.py
 
 Runs the pipeline twice over. First with a stub standing in for the ElevenLabs
-API, to prove the server synthesises the sentence, caches it, serves it to the
-tablet and keeps the key to itself. Then with no key at all, to prove the phone
-falls back to its own voice engine rather than going quiet.
+API, to prove the server synthesises the sentence, keeps it in memory, serves
+it to the tablet and keeps the key to itself. Then with no key at all, to
+prove the phone falls back to its own voice engine rather than going quiet.
 
 Playback itself is stubbed inside the page. Headless Chromium's media stack is
 not what is under test, and satisfying its decoder would mean shipping a real
@@ -249,7 +249,7 @@ def main() -> int:  # noqa: C901 - a linear script, read top to bottom
                 check(bool(context_data.get("capture")),
                       f"answer context lost the capture id: {context_data}")
 
-            # Same sentence again: cache hit, no second call, same file.
+            # Same sentence again: memory hit, no second call, same url.
             repeat = draw_and_speak(page, base, 400)
             print(f"repeat           {repeat['url'] if repeat else None}  "
                   f"api calls still {len(FakeElevenLabs.calls)}")
@@ -257,8 +257,9 @@ def main() -> int:  # noqa: C901 - a linear script, read top to bottom
                   "a repeated sentence went back to the API instead of the cache")
             check(bool(repeat) and spoken and repeat["url"] == spoken["url"],
                   "the cached audio was served under a different url")
-            cached = list((data_dirs[0] / "tts").glob("*.mp3"))
-            check(len(cached) == 1, f"expected one cached mp3, found {len(cached)}")
+            tts_dir = data_dirs[0] / "tts"
+            check(not tts_dir.exists() or not list(tts_dir.glob("*.mp3")),
+                  "speech must not write mp3 files under data/tts")
 
             browser.close()
 

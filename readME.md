@@ -215,7 +215,6 @@ data/captures/2026-09-19T00-22-31-287.png    the drawing, flattened onto white
 data/captures/2026-09-19T00-22-31-287.json   the strokes that produced it
 data/index.jsonl                             one metadata record per capture
 data/answers.jsonl                           one record per tap answer
-data/tts/<hash>.mp3                          cached speech, keyed by sentence
 ```
 
 Filenames are local timestamps to the millisecond, so they sort chronologically
@@ -284,9 +283,9 @@ with a tap, which closes the loop: the user sees and hears what was understood
 and says yes or no without typing.
 
 Synthesis is ElevenLabs, and it happens **here, not on the tablet**, so the API
-key never leaves this machine. The MP3 is cached under `data/tts/` keyed by text,
-voice and model, so repeating a sentence costs no credits. The tablet is handed
-only a local URL.
+key never leaves this machine. The MP3 stays in memory for this run and is
+served from `/tts/<id>`. Repeating a sentence reuses those bytes. Nothing is
+written under `data/tts/`. The tablet is handed only a local URL.
 
 ```
 ELEVENLABS_API_KEY=sk-...

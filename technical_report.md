@@ -74,7 +74,7 @@ server/config.py        env + .env, smoothing presets, timeouts
 server/storage.py       PNG + stroke JSON + index.jsonl + answers.jsonl
 server/app.py           HTTP, WebSocket hub, analyse → converse
 server/pipeline.py      process_capture, spoken lines, follow-ups, closings
-server/speech.py        ElevenLabs, data/tts/ cache, never raises
+server/speech.py        ElevenLabs, in-memory clips, never raises
 server/shape_game.py    in-process circle / square / triangle session
 
 recognize.py            IntentRecognizer: geometry, Gemini, blend, fallbacks
@@ -521,10 +521,9 @@ speech / caretaker / emergency browser tests in `scripts/`.
 ## 8. Speech
 
 `speech.synthesise(text)` runs on the laptop. The API key never leaves
-this machine. MP3s are cached under `data/tts/` by
-`(model, voice, text)`. A missing key, a dead network, or a refused
-request returns `None`; the tablet then uses `speechSynthesis`. The
-function never raises.
+this machine. MP3s stay in this process and are served from `/tts/<id>`.
+A missing key, a dead network, or a refused request returns `None`; the
+tablet then uses `speechSynthesis`. The function never raises.
 
 Default model `eleven_flash_v2_5`. The canvas shows "Powered by
 ElevenLabs" only when their audio actually played.
@@ -607,7 +606,6 @@ the next model. Raise past 20 s if a hang must be survivable.
 | `data/captures/<id>.json` | strokes with `points` and `raw` |
 | `data/index.jsonl` | one `CaptureRecord` per line; `analysis` filled after recognition |
 | `data/answers.jsonl` | one tap per line, with capture id and spoken text in `context` |
-| `data/tts/<hash>.mp3` | cached speech |
 | `drawings_db.json` | feature templates |
 | `drawing_tags.json` | tag catalog |
 | `memory_graph.json` | second brain |
