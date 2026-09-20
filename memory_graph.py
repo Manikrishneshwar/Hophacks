@@ -428,6 +428,19 @@ class MemoryGraph:
                     other = edge["target"] if edge["source"] == day_id else edge["source"]
                     keep.add(other)
                     keep.add(day_id)
+        else:
+            # History view: keep people, themes, and days, but only the newest
+            # events so the graph stays readable for a demo.
+            events = [
+                node for node in self._data["nodes"].values() if node["type"] == "event"
+            ]
+            events.sort(key=lambda node: node.get("last_seen") or "", reverse=True)
+            keep = {
+                node["id"]
+                for node in self._data["nodes"].values()
+                if node["type"] != "event"
+            }
+            keep.update(node["id"] for node in events[:32])
         nodes = []
         for node in self._data["nodes"].values():
             if keep is not None and node["id"] not in keep:
@@ -495,6 +508,147 @@ class MemoryGraph:
             "edges": edges,
         }
 
+    def _demo_event(
+        self,
+        on: date,
+        tag: str,
+        score: float,
+        drawing: str,
+        note: str,
+        *,
+        confirmed: bool = True,
+    ) -> None:
+        """One lifetime story beat with a stable id so re-seeding does not duplicate."""
+        person = self.person_id()
+        intent_id = f"intent:{slug(tag)}"
+        day_id = self._day_id(on)
+        self.upsert_node(intent_id, ntype="intent", label=tag, weight=score)
+        self.link(person, "requested", intent_id, weight=score, source="demo")
+        self.link(intent_id, "occurred_on", day_id, weight=score)
+        draw = f"drawing:{slug(drawing)}"
+        self.upsert_node(draw, ntype="drawing", label=drawing, weight=score)
+        self.link(intent_id, "expressed_by", draw, weight=score)
+        event_id = f"event:demo:{on.isoformat()}:{slug(tag)}"
+        self.upsert_node(
+            event_id,
+            ntype="event",
+            label=note if len(note) <= 42 else f"{tag} ({score:.2f})",
+            weight=score,
+            source="demo",
+            confirmed=confirmed,
+            note=note[:200],
+            iso_date=on.isoformat(),
+        )
+        self.link(person, "had_event", event_id, weight=score)
+        self.link(event_id, "about", intent_id, weight=score)
+        self.link(event_id, "on_day", day_id, weight=score)
+
+    def seed_lifetime_color(self) -> None:
+        """People, themes, and a two-week story so the history brain looks lived-in.
+
+        Matches compressed_history.txt: Jordan, the garden, morning walks,
+        pizza on Saturday, a help call, stories about the old street, and
+        the shape game. Stable ids, so Load sample week can run more than once.
+        """
+        person = self.person_id()
+        for tag in ("water", "food", "help", "rest", "story", "talk", "play"):
+            self.upsert_node(f"intent:{tag}", ntype="intent", label=tag, weight=0.2)
+
+        jordan = "person:jordan"
+        self.upsert_node(
+            jordan,
+            ntype="person",
+            label="Jordan",
+            weight=2.4,
+            relation="daughter",
+            role="caretaker",
+        )
+        self.link(jordan, "cares_for", person, weight=2.4)
+        self.link(person, "relies_on", jordan, weight=2.0)
+        self.link("intent:help", "alerts", jordan, weight=1.8)
+
+        extras = [
+            ("interest", "tomatoes", 1.6, "grows"),
+            ("interest", "birds", 1.1, "watches"),
+            ("interest", "hymns", 1.2, "listens_to"),
+            ("preference", "soup at lunch", 1.4, "prefers"),
+            ("preference", "tea after water", 1.1, "prefers"),
+            ("preference", "weekend pizza", 1.3, "prefers"),
+            ("theme", "morning garden", 1.8, "returns_to"),
+            ("theme", "old street", 1.3, "remembers"),
+            ("theme", "family visits", 1.7, "looks_forward_to"),
+            ("theme", "shape game", 1.2, "plays"),
+            ("theme", "afternoon rest", 1.4, "keeps"),
+        ]
+        for ntype, label, weight, relation in extras:
+            node_id = f"{ntype}:{slug(label)}"
+            self.upsert_node(node_id, ntype=ntype, label=label, weight=weight)
+            self.link(person, relation, node_id, weight=weight)
+
+        self.link("interest:gardening", "includes", "interest:tomatoes", weight=1.2)
+        self.link("interest:morning-walks", "leads_to", "intent:water", weight=1.5)
+        self.link("interest:gardening", "inspires", "intent:story", weight=1.3)
+        self.link("theme:morning-garden", "about", "interest:gardening", weight=1.4)
+        self.link("theme:old-street", "told_as", "intent:story", weight=1.2)
+        self.link("theme:family-visits", "involves", jordan, weight=1.6)
+        self.link("intent:talk", "often_about", jordan, weight=1.3)
+        self.link("intent:food", "on_weekends", "preference:weekend-pizza", weight=1.2)
+        self.link("intent:water", "sometimes_then", "preference:tea-after-water", weight=1.0)
+        self.link("intent:food", "usually", "preference:soup-at-lunch", weight=1.1)
+        self.link("theme:shape-game", "started_by", "intent:play", weight=1.0)
+        self.link("intent:rest", "follows", "theme:afternoon-rest", weight=1.0)
+        self.link("interest:sketches", "shows_up_in", "intent:story", weight=0.9)
+        self.link("interest:hymns", "fits", "intent:story", weight=1.0)
+
+        for tag, drawing in (
+            ("food", "apple"),
+            ("food", "pizza"),
+            ("help", "phone"),
+            ("story", "music"),
+            ("story", "garden-sun"),
+            ("talk", "smile"),
+            ("play", "one"),
+        ):
+            self.upsert_node(f"intent:{tag}", ntype="intent", label=tag, weight=0.4)
+            draw = f"drawing:{slug(drawing)}"
+            self.upsert_node(draw, ntype="drawing", label=drawing, weight=0.8)
+            self.link(f"intent:{tag}", "expressed_by", draw, weight=0.8)
+
+        today = date.today()
+        beats = [
+            (10, "story", 0.88, "garden-sun", "Sun over the tomato vines", True),
+            (10, "water", 0.93, "cup", "Water after the garden", True),
+            (9, "food", 0.86, "oatmeal", "Oatmeal after the walk", True),
+            (8, "talk", 0.84, "smile", "A smile after Jordan visited", True),
+            (8, "water", 0.9, "cup", "Water in the afternoon", True),
+            (7, "food", 0.8, "soup", "Soup at lunch", True),
+            (7, "rest", 0.78, "bed", "A nap after lunch", True),
+            (6, "play", 0.91, "one", "Started the shape game with a 1", True),
+            (6, "story", 0.82, "music", "Hymns from the old radio", True),
+            (5, "help", 0.97, "phone", "Drew a telephone; Jordan came", True),
+            (5, "water", 0.88, "cup", "Water once help was settled", True),
+            (5, "rest", 0.8, "bed", "Lie down after the visit", True),
+            (4, "food", 0.83, "sandwich", "A sandwich later in the day", True),
+            (3, "story", 0.85, "house", "The old street with a tree", True),
+            (3, "talk", 0.8, "heart", "Thinking of Jordan", True),
+            (2, "food", 0.9, "pizza", "Saturday pizza", True),
+            (2, "water", 0.87, "cup", "Water with dinner", True),
+            (1, "food", 0.81, "toast", "Toast in the morning", True),
+            (1, "rest", 0.77, "bed", "Ready to sleep", True),
+            (0, "water", 0.94, "cup", "Cup after this morning's walk", True),
+            (0, "story", 0.86, "garden-sun", "Birds on the feeder", True),
+        ]
+        for days_ago, tag, score, drawing, note, confirmed in beats:
+            self._demo_event(
+                today - timedelta(days=days_ago),
+                tag,
+                score,
+                drawing,
+                note,
+                confirmed=confirmed,
+            )
+        self.save()
+
     def seed_demo_day(self) -> None:
         """Today-only slice for the daily brain."""
         today = date.today()
@@ -523,34 +677,12 @@ class MemoryGraph:
         self.save()
 
     def seed_demo_week(self) -> None:
-        """Fictional week of activity so judges see a populated second brain."""
-        today = date.today()
-        story = [
-            (today - timedelta(days=4), "water", 0.9, "cup", "Asked for water after a walk"),
-            (today - timedelta(days=4), "food", 0.7, "bowl", "Wanted lunch"),
-            (today - timedelta(days=3), "water", 0.85, "cup", "Thirsty mid-morning"),
-            (today - timedelta(days=3), "rest", 0.6, "bed", "Needed a nap"),
-            (today - timedelta(days=2), "help", 0.95, "cross", "Called for a caregiver"),
-            (today - timedelta(days=2), "water", 0.8, "cup", "Water after help resolved"),
-            (today - timedelta(days=1), "food", 0.75, "bowl", "Hungry in the evening"),
-            (today - timedelta(days=1), "rest", 0.7, "bed", "Ready to sleep"),
-            (today, "water", 0.92, "cup", "Drew a cup this morning"),
-            (today, "yes", 0.65, "check", "Confirmed water"),
-        ]
+        """Fictional two weeks so judges see a populated second brain."""
+        self.seed_lifetime_color()
         garden = "interest:gardening"
         if garden in self._data["nodes"]:
-            self.upsert_node(garden, ntype="interest", label="gardening", weight=1.2)
-            self.link(self.person_id(), "mentioned", garden, weight=1.2)
-        for on, tag, score, drawing, note in story:
-            self.record_intent(
-                tag,
-                score=score,
-                source="demo",
-                confirmed=tag in {"water", "help", "yes"},
-                drawing_id=drawing,
-                on=on,
-                note=note,
-            )
+            self.upsert_node(garden, ntype="interest", label="gardening", weight=0.4)
+            self.link(self.person_id(), "mentioned", garden, weight=0.4)
         self.save()
 
 
@@ -567,7 +699,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("show", help="Print graph stats and vis payload summary")
     seed = sub.add_parser("seed", help="Build skeleton from patient_data + tags")
-    seed.add_argument("--demo", action="store_true", help="Add a fictional week of activity")
+    seed.add_argument("--demo", action="store_true", help="Add a fictional two-week lifetime story")
     return parser
 
 

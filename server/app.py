@@ -52,8 +52,8 @@ from memory_graph import MemoryGraph  # noqa: E402
 
 app = FastAPI(title="Ink Pipeline")
 
-CLIENT_VERSION = "10"
-CARETAKER_VERSION = "2"
+CLIENT_VERSION = "11"
+CARETAKER_VERSION = "3"
 
 
 @app.middleware("http")
@@ -751,13 +751,14 @@ async def place_caretaker_call(
         # Buzz the caretaker phone before the pad even finishes speaking.
         await push_caretaker(log, result, confirmed=True)
     await speak_only(record, spoken, log=log)
-    await hub.to_viewers({
-        "type": "emergency",
+    payload = {
         "name": name,
         "phone": phone,
         "relation": relation,
         "id": record.id,
-    })
+    }
+    await hub.to_tablets({"type": "call", **payload})
+    await hub.to_viewers({"type": "emergency", **payload})
     result.text = spoken
 
 

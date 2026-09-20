@@ -183,7 +183,7 @@ counts: water, pizza, … resetting each day via `/api/caretaker/stats`). A
 foreground service keeps the caretaker WebSocket alive and posts OS
 notifications. Help is `kind=emergency` with a separate IMPORTANCE_HIGH
 channel, alarm sound, and full-screen HELP activity — not a `tel:` dialer on
-the pad. `CLIENT_VERSION` is 10; `CARETAKER_VERSION` is 2. Debug APK:
+the pad. `CLIENT_VERSION` is 11; `CARETAKER_VERSION` is 3. Debug APK:
 `android/app/build/outputs/apk/debug/app-debug.apk`. `/caretaker` remains as
 a web fallback.
 

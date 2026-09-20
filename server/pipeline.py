@@ -73,7 +73,10 @@ FALLBACK_CLOSINGS = {
     "water": "I'll get you some water.",
     "help": "Someone is on the way.",
     "rest": "Rest easy.",
-    "story": "Once the hills sat still under a small sun, and that was enough for a quiet afternoon.",
+    "story": (
+        "Once the hills sat still under a small sun. A bird landed on the "
+        "fence and waited. That was enough for a quiet afternoon."
+    ),
     "talk": "I'm glad you drew that. I'm here with you.",
 }
 
@@ -231,6 +234,20 @@ class CaptureResult:
     candidates: list[Any] = field(default_factory=list)
     recognition: Any = None
     detail: str | None = None
+
+
+def starts_shape_game(result: Any) -> bool:
+    """True only for a clear geometric 1 / 2 that was never ranked as a need.
+
+    Fast-path geometry returns no candidates, which is how a clean 1 starts
+    the game with no API call. An assist digit (confidence 0.60) sits beside
+    food/help rankings; those captures must stay the need, not the game.
+    """
+    digit = getattr(result, "digit", "") or ""
+    source = getattr(result, "digit_source", "") or ""
+    if digit not in {"1", "2"} or source != "geometry":
+        return False
+    return not getattr(result, "candidates", None)
 
 
 def as_capture_result(raw: CaptureResult | str | None) -> CaptureResult | None:
@@ -598,9 +615,7 @@ def process_capture(image: Path, data: dict[str, Any]) -> CaptureResult | str | 
 
     digit = getattr(result, "digit", "") or ""
     source = getattr(result, "digit_source", "") or ""
-    # Only geometry may start the game. A stored `two*` prior scores ~0.75
-    # against an open apple, which used to invent a 2 and skip the food rank.
-    if digit in {"1", "2"} and source == "geometry":
+    if starts_shape_game(result):
         print(f"[pipeline] digit   {digit} via {source}  (shape game)")
         return CaptureResult(
             text="Let's play a drawing game.",

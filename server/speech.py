@@ -30,7 +30,7 @@ OUTPUT_FORMAT = "mp3_44100_128"
 VOICE_SETTINGS = {"stability": 0.45, "similarity_boost": 0.8}
 
 # A long session should not keep every line. Oldest clips drop first.
-_MAX_CLIPS = 32
+_MAX_CLIPS = 48
 
 
 @dataclass(frozen=True)

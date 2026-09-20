@@ -566,7 +566,7 @@ drawing alerts do not use that channel.
 
 `CLIENT_VERSION` (canvas + `app.py`) and `CARETAKER_VERSION` (web
 fallback + `app.py`) must be bumped together on frontend changes. The
-native app does not use the version check.
+native app does not use the version check. Canvas is 11; caretaker web is 3.
 
 Build: `scripts/build_caretaker_apk.py` →
 `android/app/build/outputs/apk/debug/app-debug.apk`.

@@ -26,7 +26,7 @@ const gameTextEl = document.getElementById('game-text');
 
 // Bumped whenever this file changes in a way a stale tablet would get wrong.
 // Must match CLIENT_VERSION in server/app.py.
-const CLIENT_VERSION = '10';
+const CLIENT_VERSION = '11';
 
 const PEN_COLOR = '#111318';
 const BASE_WIDTH = 2.6;
@@ -503,6 +503,7 @@ function play() {
     // Autoplay is allowed here because drawing counted as the user gesture, but
     // a page that has only been looked at is still refused; hence the fallback.
     audio = new Audio(url);
+    audio.onerror = () => speakOnDevice(text);
     audio.play().catch(() => speakOnDevice(text));
     speechSourceEl.textContent = 'Powered by ElevenLabs';
     ink.speech = { text, url, via: 'elevenlabs' };
@@ -711,7 +712,7 @@ function connect() {
     try { message = JSON.parse(event.data); } catch { return; }
     if (message.type === 'speak') speak(message.text, message.url);
     if (message.type === 'game') setGame(message.target);
-    if (message.type === 'call') startCall(message);
+    if (message.type === 'call' || message.type === 'emergency') startCall(message);
     if (message.type === 'welcome') {
       setStatus('connected', 'on');
       checkVersion(message.version);

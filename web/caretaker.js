@@ -6,7 +6,7 @@
  * HTTPS, so on a plain LAN the alert is this page, a chime, and vibration.
  */
 
-const CARETAKER_VERSION = '2';
+const CARETAKER_VERSION = '3';
 
 const dotEl = document.getElementById('dot');
 const patientEl = document.getElementById('patient');
@@ -91,7 +91,10 @@ function checkVersion(serverVersion) {
     sessionStorage.removeItem('ink-caretaker-reloaded-for');
     return;
   }
-  if (sessionStorage.getItem('ink-caretaker-reloaded-for') === serverVersion) return;
+  if (sessionStorage.getItem('ink-caretaker-reloaded-for') === serverVersion) {
+    setStatus(`stale page (v${CARETAKER_VERSION})`, 'off');
+    return;
+  }
   sessionStorage.setItem('ink-caretaker-reloaded-for', serverVersion);
   setTimeout(() => location.reload(), 400);
 }
@@ -191,6 +194,7 @@ function connect() {
     backoff = 500;
     window.caretaker.connected = true;
     setStatus('live', 'on');
+    refreshFeed();
   });
 
   socket.addEventListener('message', (event) => {
@@ -217,7 +221,7 @@ function connect() {
   socket.addEventListener('error', () => socket.close());
 }
 
-async function boot() {
+async function refreshFeed() {
   try {
     const payload = await (await fetch('/api/caretaker/events')).json();
     if (payload.patient?.name) patientEl.textContent = payload.patient.name;
@@ -226,6 +230,10 @@ async function boot() {
       seen.add(event.id + ':' + String(event.answer));
     }
   } catch { /* empty feed is fine */ }
+}
+
+async function boot() {
+  await refreshFeed();
 
   if (!window.isSecureContext) {
     hintEl.textContent = 'Keep this page open on the same Wi-Fi. Alerts are a chime and vibration here; lock-screen banners need HTTPS.';

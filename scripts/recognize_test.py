@@ -242,6 +242,20 @@ def main() -> int:
         fail("help must not close with I'll help with the h")
     if pipeline.fallback_closing("help", "hand") == "I'll help with the hand.":
         fail("help must not treat a drawing label as a kind of help")
+    fake_need = type(
+        "R",
+        (),
+        {
+            "digit": "1",
+            "digit_source": "geometry",
+            "candidates": [type("C", (), {"tag_id": "food"})()],
+        },
+    )()
+    if pipeline.starts_shape_game(fake_need):
+        fail("a geometry assist on a food ranking must not start the game")
+    fake_one = type("R", (), {"digit": "1", "digit_source": "geometry", "candidates": []})()
+    if not pipeline.starts_shape_game(fake_one):
+        fail("a fast-path geometric 1 with no rankings should start the game")
     if pipeline.refines_the_need("hand", "help"):
         fail("help detail describes the drawing, not a variety of the need")
     fake = type("R", (), {"spoken": "I need help with H.", "top_tag": "help", "candidates": []})()

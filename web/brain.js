@@ -236,6 +236,7 @@ function connect() {
   socket.addEventListener('open', () => {
     dot.className = 'dot on';
     meta.textContent = 'live · confirmed drawings appear here';
+    loadBoth().catch(() => {});
   });
   socket.addEventListener('message', (event) => {
     let message;

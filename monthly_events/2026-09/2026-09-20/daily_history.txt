@@ -106,3 +106,135 @@ Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (
 User: pad drawing 2026-09-20T01-06-54-897
 Summary: Confirmed intent food: I would like some pizza, please. (pizza)
 
+## 2026-09-20T07:01:47+00:00
+User: pad drawing 2026-09-20T03-01-15-958
+Summary: Confirmed intent talk: That's a smile. Want some company?
+
+## 2026-09-20T07:04:17+00:00
+User: pad drawing 2026-09-20T03-04-08-049
+Summary: Guesses rejected for capture 2026-09-20T03-04-08-049: story
+
+## 2026-09-20T07:04:34+00:00
+User: pad drawing 2026-09-20T03-04-28-180
+Summary: Confirmed intent food: I would like an apple, please. (apple)
+
+## 2026-09-20T07:10:25+00:00
+User: pad drawing 2026-09-20T03-10-20-031
+Summary: Confirmed intent food: I would like an apple, please. (apple)
+
+## 2026-09-20T07:10:46+00:00
+User: pad drawing 2026-09-20T03-10-39-386
+Summary: Confirmed intent food: I would like some pizza, please. (pizza)
+
+## 2026-09-20T07:11:10+00:00
+User: pad drawing 2026-09-20T03-10-58-855
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+
+## 2026-09-20T07:14:07+00:00
+User: pad drawing 2026-09-20T03-13-45-427
+Summary: Guesses rejected for capture 2026-09-20T03-13-45-427: story, talk
+
+## 2026-09-20T07:15:00+00:00
+User: pad drawing 2026-09-20T03-14-51-629
+Summary: Confirmed intent food: I would like an apple, please. (apple)
+
+## 2026-09-20T07:15:32+00:00
+User: pad drawing 2026-09-20T03-15-21-440
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+
+## 2026-09-20T07:16:21+00:00
+User: pad drawing 2026-09-20T03-16-09-834
+Summary: Guesses rejected for capture 2026-09-20T03-16-09-834: help
+
+## 2026-09-20T07:16:51+00:00
+User: pad drawing 2026-09-20T03-16-34-644
+Summary: Guesses rejected for capture 2026-09-20T03-16-34-644: food, story
+
+## 2026-09-20T07:17:08+00:00
+User: pad drawing 2026-09-20T03-17-02-883
+Summary: Confirmed intent food: I would like a slice of pizza, please. (pizza)
+
+## 2026-09-20T07:26:59+00:00
+User: pad drawing 2026-09-20T03-26-45-305
+Summary: Guesses rejected for capture 2026-09-20T03-26-45-305: story
+
+## 2026-09-20T07:27:15+00:00
+User: pad drawing 2026-09-20T03-27-09-644
+Summary: Confirmed intent food: I would like some pizza, please. (pizza)
+
+## 2026-09-20T07:37:09+00:00
+User: pad drawing 2026-09-20T03-36-58-107
+Summary: Confirmed intent water: I would like some water, please.
+
+## 2026-09-20T07:37:50+00:00
+User: pad drawing 2026-09-20T03-37-31-664
+Summary: Guesses rejected for capture 2026-09-20T03-37-31-664: food, water, story
+
+## 2026-09-20T07:38:18+00:00
+User: pad drawing 2026-09-20T03-38-04-455
+Summary: Confirmed intent story: That looks like a cloud. Want a short story?
+
+## 2026-09-20T07:39:01+00:00
+User: pad drawing 2026-09-20T03-38-48-597
+Summary: Confirmed intent story: That looks like a boat. Want a short story?
+
+## 2026-09-20T07:39:13+00:00
+User: pad drawing 2026-09-20T03-39-05-086
+Summary: Guesses rejected for capture 2026-09-20T03-39-05-086: talk
+
+## 2026-09-20T07:40:25+00:00
+User: pad drawing 2026-09-20T03-40-11-690
+Summary: Confirmed intent food: I would like a sandwich, please. (sandwich)
+
+## 2026-09-20T07:40:53+00:00
+User: pad drawing 2026-09-20T03-40-37-992
+Summary: Confirmed intent food: I would like an apple, please. (apple)
+
+## 2026-09-20T07:48:20+00:00
+User: pad drawing 2026-09-20T03-47-52-667
+Summary: Confirmed intent talk: That's a smile. Want some company?
+
+## 2026-09-20T07:49:50+00:00
+User: pad drawing 2026-09-20T03-49-38-150
+Summary: Guesses rejected for capture 2026-09-20T03-49-38-150: talk, food
+
+## 2026-09-20T07:50:35+00:00
+User: pad drawing 2026-09-20T03-50-30-657
+Summary: Confirmed intent food: I would like an apple, please. (apple)
+
+## 2026-09-20T07:50:51+00:00
+User: pad drawing 2026-09-20T03-50-45-916
+Summary: Confirmed intent water: I would like a glass of water, please.
+
+## 2026-09-20T07:51:08+00:00
+User: pad drawing 2026-09-20T03-51-01-488
+Summary: Confirmed intent talk: That's a smile. Want some company?
+
+## 2026-09-20T07:51:26+00:00
+User: pad drawing 2026-09-20T03-51-21-064
+Summary: Confirmed intent food: I would like a pizza slice, please. (pizza)
+
+## 2026-09-20T07:53:15+00:00
+User: pad drawing 2026-09-20T03-53-06-051
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+
+## 2026-09-20T07:53:56+00:00
+User: pad drawing 2026-09-20T03-53-37-869
+Summary: Confirmed intent story: That looks like mountains. Want a short story?
+
+## 2026-09-20T07:54:28+00:00
+User: pad drawing 2026-09-20T03-54-23-240
+Summary: Guesses rejected for capture 2026-09-20T03-54-23-240: talk
+
+## 2026-09-20T07:57:16+00:00
+User: pad drawing 2026-09-20T03-57-09-204
+Summary: Confirmed intent food: I would like an apple, please. (apple)
+
+## 2026-09-20T07:57:39+00:00
+User: pad drawing 2026-09-20T03-57-27-021
+Summary: Guesses rejected for capture 2026-09-20T03-57-27-021: food, water, help
+
+## 2026-09-20T07:58:29+00:00
+User: pad drawing 2026-09-20T03-58-21-293
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+

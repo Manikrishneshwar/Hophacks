@@ -76,6 +76,8 @@ class HubService : Service() {
                     this@HubService,
                     "Listening for ${Prefs.patientName(this@HubService)}",
                 )
+                refreshHistory()
+                refreshStats()
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
