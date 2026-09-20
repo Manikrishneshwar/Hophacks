@@ -175,6 +175,20 @@ def parse_json_object(text: str) -> dict[str, Any]:
     return data
 
 
+def _usable_detail(raw: str, tag_id: str) -> str:
+    """Keep only a real object name. Letters and tag initials are ink, not needs."""
+    token = (raw or "").strip().lower()
+    if not token or token == tag_id or token == tag_id[:1]:
+        return ""
+    if len(token) < 2:
+        return ""
+    if tag_id == "help" and token not in {"call", "caretaker"}:
+        return ""
+    if tag_id == "rest":
+        return ""
+    return token
+
+
 @dataclass
 class InteractionResult:
     reply: str
@@ -582,8 +596,8 @@ class GeminiPatientModel:
             "You interpret a finger drawing from an eyes-free pad.\n"
             "LOOK AT THE IMAGE FIRST. Describe what it shows, then map it to a tag.\n"
             "An apple, pizza, sandwich, bowl, or other food is food. A cup, glass, "
-            "bottle, or tap is water. A cross, plus, telephone, or phone handset is "
-            "help. A bed or pillow is rest.\n"
+            "bottle, or tap is water. A cross, plus, handwritten H, or telephone "
+            "is help. A bed or pillow is rest.\n"
             "Not every drawing is a care need. Mountains, a sun, a tree, a house, a "
             "book, an animal, or any little scene is story. A smile, a face, a person, "
             "or a heart is talk. Do not force those into food, water, help, or rest.\n"
@@ -598,9 +612,13 @@ class GeminiPatientModel:
             "Patient history is a weak tie-breaker only. Do not pick water just because "
             "they have asked for water before if the drawing is clearly something else.\n"
             "Yes and no are given by taps, never by this ranking.\n"
-            "For food, water, help, or rest, spoken is first person, short, as the "
-            "person talking to a caregiver. Name the object if you can see it "
+            "For food or water, spoken is first person, short, as the person "
+            "talking to a caregiver. Name the food or drink if you can see it "
             "(apple, pizza, tea). No question, no list, no diagnosis.\n"
+            "For help, spoken is exactly \"I need help, please.\" Do not name a "
+            "letter, a cross, or a hand. detail is empty unless the drawing is "
+            "clearly a telephone, in which case detail is \"call\".\n"
+            "For rest, spoken is first person and short. detail is empty.\n"
             "For story, spoken is the pad offering: name what you see, then ask if "
             "they want a short story (That looks like mountains. Want a short story?).\n"
             "For talk, spoken is the pad offering company (That's a smile. Want some "
@@ -613,8 +631,9 @@ class GeminiPatientModel:
             '"spoken": "I would like an apple, please."}\n'
             f"Return at most {top_k} tags, highest likelihood first. "
             "Use only tag_id values from the list.\n"
-            "likelihood must be a number from 0 to 1. detail is a short specific "
-            "object (apple, pizza, tea), never the tag_id itself. Empty string if unknown.\n"
+            "likelihood must be a number from 0 to 1. detail is a real object "
+            "name (apple, pizza, tea), never a single letter, never the tag "
+            "initial, never the tag_id itself. Empty string if unknown.\n"
             "You are not a clinician and must not diagnose.\n\n"
             f"## Date\n{ctx['date']}\n\n"
             f"## Patient data (weak prior)\n{ctx['patient_data']}\n\n"
@@ -643,7 +662,9 @@ class GeminiPatientModel:
                     "likelihood": likelihood,
                     "reason": str(row.get("reason") or "").strip(),
                     "spoken": str(row.get("spoken") or "").strip(),
-                    "detail": str(row.get("detail") or "").strip().lower(),
+                    "detail": _usable_detail(
+                        str(row.get("detail") or ""), tag_id
+                    ),
                 }
             )
             seen_ids.add(tag_id)
@@ -726,13 +747,14 @@ class GeminiPatientModel:
             "- food: ask about a dish only if they said 'food' or 'something to eat' "
             "with no specific. Never offer drinks.\n"
             "- help: FIRST follow-up is always calling the named caretaker. "
-            "Then bathroom if needed. Never food or drink.\n"
+            "Then bathroom if needed. Never food or drink. Never ask if the "
+            "drawing is a letter, a cross, a plus, or a hand.\n"
             "- rest: return ZERO followups.\n"
             "Do not diagnose. Do not switch intents.\n"
             "Each follow-up has:\n"
             "- spoken: one short assistant question (Should I call Jordan?)\n"
             "- question: 1-3 words on the pad (Call Jordan?)\n"
-            "- detail: a short label (call, soup, bathroom)\n"
+            "- detail: a short label (call, soup, bathroom). Never a letter.\n"
             f"Return JSON only: {{\"followups\": [{{\"spoken\": \"...\", \"question\": \"Call Jordan?\", \"detail\": \"call\"}}]}}\n"
             f"Return at most {limit} followups. Empty list is allowed.\n\n"
             f"## Local hour (24h)\n{hour}\n\n"

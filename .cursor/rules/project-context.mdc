@@ -7,22 +7,25 @@ alwaysApply: true
 
 Draw on an Android phone over the LAN; the laptop stores each drawing and runs
 analysis on it. Partly an accessibility tool for stroke patients with tremor and
-limited finger mobility. `readME.md` explains how it works; this file is the
-state and the working agreements.
+limited finger mobility. `readME.md` explains how to run it;
+`technical_report.md` is the architecture. This file is the state and the
+working agreements.
 
 ## Working agreements
 
 - **Confirm before building anything new.** Explain the plan and wait for a go.
 - **Reminder to push** goes at the end of any list of commands, nowhere else.
-- Always invoke Python as `.\.venv\Scripts\python.exe`. A bare `python` grabs
-  the system interpreter, which lacks the dependencies and has already caused a
-  second server to seize port 8000 while the venv one bound to nothing.
+- Always invoke Python as `.venv/bin/python` on Linux or
+  `.\.venv\Scripts\python.exe` on Windows. A bare `python` grabs the system
+  interpreter, which lacks the dependencies and has already caused a second
+  server to seize port 8000 while the venv one bound to nothing.
 - Verify with the scripts in `scripts/` before claiming something works.
 
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
+| `technical_report.md` | Architecture, control flow, templates, features |
 | `run.py` | Launcher: LAN address, QR codes for tablet and caretaker |
 | `server/config.py` | Settings from env and `.env`, smoothing presets |
 | `server/storage.py` | Disk writes, `index.jsonl`, `answers.jsonl`, DB seam |
@@ -37,6 +40,7 @@ state and the working agreements.
 | `web/caretaker.html/js` | Caregiver web fallback |
 | `web/brain.html/js` | Memory graph; embed mode for the Android app |
 | `android/` | Native caretaker app: Alerts + Brain, emergency notifications |
+| `data/priors/` | Labelled repeated drawings used as feature templates |
 
 Tests, each starting its own server on a free port: `browser_test.py` (capture
 loop), `tap_test.py` (tap answers, multi-touch), `smoothing_test.py` (tremor
@@ -44,7 +48,8 @@ filter), `pipeline_test.py` (what step 2 receives), `speech_test.py` (synthesis,
 caching, keyless fallback, confirming tap), `caretaker_test.py` (caregiver phone
 gets image + prompts + yes/no), `emergency_test.py` (help alerts the caretaker
 without dialing the pad), `recognize_test.py` (Gemini ranking
-harness, timeout fallback), `digit_test.py` (geometric 1 / 2 detection and
+harness, near-tie blend, timeout fallback), `priors_test.py` (hold-one-out of
+`data/priors/`), `digit_test.py` (geometric 1 / 2 detection and
 offline shape grading, stdlib only), `model_chain_test.py` (model fallback,
 stubbed client), `local_vision_test.py` (on-machine fallback and its ordering
 against templates, stubbed HTTP so Ollama need not be running),
@@ -52,7 +57,7 @@ against templates, stubbed HTTP so Ollama need not be running),
 `eval_benchmark.py` (labeled drawings,
 ranking report for judges). Also `smoke_test.py`, `ask.py`,
 `show_data.py`, `show_strokes.py` against a running server, and
-`seed_drawings.py` to fill the gitignored `drawings_db.json`.
+`seed_drawings.py` to fill `drawings_db.json` from `data/priors/`.
 `scripts/build_caretaker_apk.py` builds the debug APK.
 
 ## Status
@@ -65,7 +70,8 @@ no), stroke start/end tones and vibration, One Euro tremor smoothing.
 Gemini from the PNG (history is a weak prior; `yes`/`no` are not drawing
 tags). When Gemini fails or exceeds `GEMINI_TIMEOUT_S` the PNG is read by a
 local vision model, and templates in `drawings_db.json` answer only if that is
-unavailable too. The spoken line may name the object
+unavailable too. A close prior can break a Gemini near-tie among the tags it
+already proposed; it cannot invent a new one. The spoken line may name the object
 (apple, pizza). A no tap
 retries the next candidate (up to three). Follow-ups
 stay on the confirmed intent and are skipped once the request is specific
@@ -150,11 +156,17 @@ rejected sentence is no loss: `spoken_for` then uses the curated `PHRASES` line,
 which is better written anyway. It can only catch shape, not sense -- qwen's "I
 need help finding the flag." passes.
 
-**Templates are seeded by `scripts/seed_drawings.py`.** `drawings_db.json` is
-gitignored, so it is empty on a fresh clone and the bottom tier recognises
-nothing. Real captures from `eval/catalog.json` cover water, food, and help;
-`bed`, `check`, and `xmark` are script-drawn outlines and much weaker. Note the
-3/3 those real ones score is a self-match, not evidence of generalisation.
+**Templates are seeded by `scripts/seed_drawings.py` from `data/priors/`.** Those
+are this person's repeated drawings (apple, pizza, water, call, music, 1, 2).
+They fill `drawings_db.json` and rewrite each tag's `drawing_ids`. A strong
+match (0.6+) is mixed into Gemini's rank at 30% so a 0.55/0.50 split can be
+broken, but only when exactly one candidate is that close. A 0.95 food reading
+still beats a cup template, and templates
+cannot invent a tag Gemini omitted. Digit priors stay in the store but do not
+start the drawing game: an open apple is close enough to a stored 2 that this
+used to offer "Play a game?" instead of food. Cartoon outlines remain only
+for tags the priors do not cover (`bed`, `check`, `xmark`). `eval/catalog.json`
+is a backup when a tag has no prior. Verified with `scripts/priors_test.py`.
 
 **Speech and confirmation are built and tested.** `analyse()` hands the text to
 `speech.synthesise()`, pushes `{"type": "speak", "text", "url"}` to tablets, then
@@ -206,7 +218,11 @@ the HTTP routes, or the scripts. The user intends to specify one.
   question. Replay the captures in `data/captures/` before trusting a prompt
   change here.
 - `detail` is a food/water variety, not a caption. After a yes on help it once
-  asked "Is that hand?" because the model had described the ink. Only
+  asked "Is that hand?" because the model had described the ink. An H drawing
+  set `detail: "h"` and `"h" in "I need help."` skipped the caretaker call,
+  then a closing could say "I'll help with the h." `already_named` is a word
+  boundary, single letters are not specific, and help spoken that names a
+  letter falls back to "I need help, please." Only
   `DETAIL_REFINABLE_TAGS` (`food`, `water`) may turn detail into a follow-up.
 - Not every drawing is a need. Mountains, a book, a sun, or a scene is `story`;
   a smile or a face is `talk`. Forcing those into rest/water/help is how a

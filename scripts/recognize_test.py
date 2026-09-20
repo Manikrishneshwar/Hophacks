@@ -1,11 +1,12 @@
-"""Check that Gemini ranking is used as-is, and templates only kick in on failure.
+"""Check that Gemini ranking leads, with templates only as a near-tie nudge.
 
     python scripts/recognize_test.py
 
 Does not call the Gemini API. A fake model supplies ranks so we can assert
-that a high cup/template score cannot overturn a food ranking, that yes/no
-are not sent to the model, and that a timeout or exception falls back to
-drawings_db.json.
+that a high cup/template score cannot overturn a 0.95 food ranking, that a
+0.55/0.50 split against a cup can flip to water, that templates cannot
+invent a tag Gemini omitted, that yes/no are not sent to the model, and
+that a timeout or exception falls back to drawings_db.json.
 """
 
 from __future__ import annotations
@@ -126,7 +127,50 @@ def main() -> int:
     water = next(item for item in result.candidates if item.tag_id == "water")
     if result.candidates[0].final_weight <= water.final_weight:
         fail("template scores appear to have overturned Gemini's food rank")
-    print("ok     Gemini rank is used as-is (templates do not fuse)")
+    print("ok     a 0.95 food rank still beats a blended water template")
+
+    close = FakeModel(
+        rankings=[
+            {
+                "tag_id": "food",
+                "likelihood": 0.55,
+                "reason": "round",
+                "spoken": "I would like some food, please.",
+                "detail": "",
+            },
+            {
+                "tag_id": "water",
+                "likelihood": 0.50,
+                "reason": "cup",
+                "spoken": "I would like a drink, please.",
+                "detail": "",
+            },
+        ]
+    )
+    recognizer = make_recognizer(tmp, close)
+    result = recognizer.interpret(query, update_memory=False)
+    if result.top_tag != "water":
+        fail(f"a near-tie against a cup template should pick water, got {result.top_tag!r}")
+    if result.fallback_used:
+        fail("a blended Gemini rank should not be marked as a fallback")
+    print("ok     a strong prior can break a Gemini near-tie")
+
+    only_food = FakeModel(
+        rankings=[
+            {
+                "tag_id": "food",
+                "likelihood": 0.55,
+                "reason": "round",
+                "spoken": "I would like some food, please.",
+                "detail": "",
+            }
+        ]
+    )
+    recognizer = make_recognizer(tmp, only_food)
+    result = recognizer.interpret(query, update_memory=False)
+    if result.top_tag != "food":
+        fail(f"templates must not invent a tag Gemini omitted, got {result.top_tag!r}")
+    print("ok     templates do not invent a tag Gemini omitted")
 
     boom = FakeModel(rankings=[], error=RuntimeError("api down"))
     recognizer = make_recognizer(tmp, boom)
@@ -188,8 +232,27 @@ def main() -> int:
         fail("food follow-ups should allow pizza")
     if not pipeline.refines_the_need("pizza", "food"):
         fail("pizza should refine a food request")
+    if pipeline.already_named("I need help, please.", "h"):
+        fail("the letter h must not count as already named because it sits in help")
+    if pipeline.is_specific("h", "help"):
+        fail("a single letter is not a specific help object")
+    if not pipeline.needs_followup("help", "I need help, please.", "h"):
+        fail("an H drawing should still offer to call the caretaker")
+    if "with the h" in pipeline.fallback_closing("help", "h").lower():
+        fail("help must not close with I'll help with the h")
+    if pipeline.fallback_closing("help", "hand") == "I'll help with the hand.":
+        fail("help must not treat a drawing label as a kind of help")
     if pipeline.refines_the_need("hand", "help"):
         fail("help detail describes the drawing, not a variety of the need")
+    fake = type("R", (), {"spoken": "I need help with H.", "top_tag": "help", "candidates": []})()
+    if pipeline._spoken_text(fake) != pipeline.PHRASES["help"]:
+        fail("help spoken must not say I need help with H")
+    from gemini_session import _usable_detail
+
+    if _usable_detail("h", "help") or _usable_detail("hand", "help"):
+        fail("ranking must drop letter and drawing-shape help details")
+    if _usable_detail("call", "help") != "call":
+        fail("a telephone may still set help detail to call")
     if pipeline.followup_from_detail("hand")["spoken"] != "Is that a hand?":
         fail(f"expected an article, got {pipeline.followup_from_detail('hand')['spoken']!r}")
     if pipeline.followup_from_detail("soup")["spoken"] != "Is that soup?":
@@ -246,6 +309,40 @@ def main() -> int:
     if result.digit != "1":
         fail(f"expected digit 1, got {result.digit!r}")
     print("ok     handwritten 1 is detected without fusing templates")
+
+    apple_path = ROOT / "data" / "captures" / "2026-09-20T00-25-36-776.json"
+    two_path = ROOT / "data" / "priors" / "two5.json"
+    if apple_path.exists() and two_path.exists():
+        from drawing_features import parse_strokes
+        import json
+
+        apple_fake = FakeModel(
+            rankings=[
+                {
+                    "tag_id": "food",
+                    "likelihood": 0.95,
+                    "reason": "apple",
+                    "spoken": "I would like an apple, please.",
+                    "detail": "apple",
+                }
+            ],
+            spoken="I would like an apple, please.",
+        )
+        recognizer = make_recognizer(tmp, apple_fake)
+        recognizer.features.add(
+            parse_strokes(json.loads(two_path.read_text())),
+            "two5",
+            label="2",
+            metadata={"tag_id": "_digit", "digit": "2"},
+        )
+        result = recognizer.interpret(
+            json.loads(apple_path.read_text()), update_memory=False
+        )
+        if result.digit_source == "template":
+            fail("an open apple must not become a 2 from a stored digit template")
+        if result.top_tag != "food":
+            fail(f"expected food for the apple capture, got {result.top_tag!r}")
+        print("ok     an open apple is not turned into a 2 by digit templates")
 
     # The same claimed digit over a closed loop is stroke geometry's one veto:
     # a cup or an apple cannot be a character however the model reads the PNG.

@@ -12,6 +12,7 @@ free to block on a slow network call.
 from __future__ import annotations
 
 import json
+import re
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -140,14 +141,28 @@ def refines_the_need(detail: str | None, tag_id: str | None = None) -> bool:
 
 def is_specific(detail: str | None, tag_id: str | None = None) -> bool:
     token = (detail or "").strip().lower()
-    return bool(token) and token not in GENERIC_DETAILS and token != (tag_id or "")
+    if not token or token in GENERIC_DETAILS or token == (tag_id or ""):
+        return False
+    # A letter H meaning help is not a kind of help. The model puts the ink
+    # shape here; one character is that shape, not an object we can fetch.
+    if len(token) < 2:
+        return False
+    if tag_id and token == tag_id[0].lower():
+        return False
+    return True
 
 
 def already_named(spoken: str, detail: str | None) -> bool:
+    """True when the spoken line already names that object as a word.
+
+    A substring test treated the letter h as already named because it sits
+    inside "help", which skipped the caretaker call after an H drawing.
+    """
     token = (detail or "").strip().lower()
-    if not token:
+    if not token or len(token) < 2:
         return False
-    return token in (spoken or "").lower()
+    text = (spoken or "").lower()
+    return re.search(r"(?<![a-z])" + re.escape(token) + r"(?![a-z])", text) is not None
 
 
 def needs_followup(tag_id: str | None, spoken: str, detail: str | None = None) -> bool:
@@ -182,16 +197,12 @@ def fallback_closing(tag_id: str | None, detail: str | None = None) -> str:
     if token in {"call", "caretaker"}:
         name = str(caretaker().get("name") or "your caretaker").strip()
         return f"I've let {name} know. Help is on the way."
-    if is_specific(detail, tag_id):
+    if refines_the_need(detail, tag_id):
         name = (detail or "").strip()
         if tag_id == "food":
             return f"I'll get you the {name}."
         if tag_id == "water":
             return f"I'll get you some {name}."
-        if tag_id == "help":
-            return f"I'll help with the {name}."
-        if tag_id == "rest":
-            return "Rest easy."
     if tag_id == "water":
         return "I'll get you some water."
     return FALLBACK_CLOSINGS.get(tag_id or "", "Okay.")
@@ -399,6 +410,10 @@ def _spoken_text(result: Any) -> str:
         cleaned = " ".join(raw.split())[:160]
     else:
         cleaned = _clean_spoken(raw)
+    if tag_id == "help" and cleaned:
+        # "I need help with H" is the model naming the letter, not a need.
+        if re.search(r"\bwith\b", cleaned, re.I) or re.search(r"\b[a-z]\b", cleaned, re.I):
+            return PHRASES["help"]
     if cleaned:
         return cleaned
     label = None
@@ -582,8 +597,10 @@ def process_capture(image: Path, data: dict[str, Any]) -> CaptureResult | str | 
         return SAMPLE_TEXT
 
     digit = getattr(result, "digit", "") or ""
-    if digit in {"1", "2"}:
-        source = getattr(result, "digit_source", "") or "unknown"
+    source = getattr(result, "digit_source", "") or ""
+    # Only geometry may start the game. A stored `two*` prior scores ~0.75
+    # against an open apple, which used to invent a 2 and skip the food rank.
+    if digit in {"1", "2"} and source == "geometry":
         print(f"[pipeline] digit   {digit} via {source}  (shape game)")
         return CaptureResult(
             text="Let's play a drawing game.",
@@ -598,6 +615,8 @@ def process_capture(image: Path, data: dict[str, Any]) -> CaptureResult | str | 
     top = next((item for item in result.candidates if item.tag_id == result.top_tag), None)
     detail = (getattr(top, "detail", None) or "").strip() or None
     if not is_specific(detail, result.top_tag):
+        detail = None
+    if result.top_tag == "help" and (detail or "").lower() not in {"call", "caretaker"}:
         detail = None
     print(f"[pipeline] top     {result.top_tag!r}  fallback={result.fallback_used}")
     print(f"[pipeline] text    {text!r}")

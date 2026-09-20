@@ -4,8 +4,12 @@ __pycache__/
 venv/
 .env
 
-# Captured drawings and their metadata index.
+# Captured drawings and their metadata index. Labelled templates in
+# data/priors/ are the exception: they are how this person actually draws,
+# and seed_drawings.py turns them into drawings_db.json.
 data/
+!data/priors/
+!data/priors/**
 
 # Generated page previews.
 .preview/

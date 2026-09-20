@@ -2,10 +2,11 @@
 """Rank a pad drawing with Gemini, then with a local model, then with templates.
 
 Gemini sees the PNG and returns tag likelihoods plus a spoken sentence.
-Those ranks are used as-is. If every Gemini model fails or the call exceeds
-GEMINI_TIMEOUT_S (default 15), a vision model on this machine reads the PNG
-instead (see local_vision.py). The drawing-feature database is compared every
-time so it is ready, but it only answers when both of those are unavailable.
+A close match against the labelled priors can break a near-tie among those
+ranks, but it cannot invent a tag Gemini omitted or overturn a clear winner.
+If every Gemini model fails or the call exceeds GEMINI_TIMEOUT_S (default 15),
+a vision model on this machine reads the PNG instead (see local_vision.py).
+Templates answer only when both of those are unavailable.
 
 Usage:
   python recognize.py interpret strokes.json
@@ -44,6 +45,12 @@ DEFAULT_TIMEOUT_S = 15.0
 # the on-machine model's own answers would be thrown away as well.
 MIN_USABLE_LIKELIHOOD = 0.25
 
+# When a new drawing is close to a stored prior, mix that score into Gemini's
+# rank. Weak feature hits stay ignored so a cartoon cup cannot overturn a 0.95
+# food reading of an apple. 0.3 is enough to break a 0.55/0.50 tie.
+FEATURE_BLEND_MIN = 0.6
+FEATURE_BLEND_WEIGHT = 0.3
+
 
 @dataclass
 class Candidate:
@@ -70,8 +77,8 @@ class RecognitionResult:
     spoken: str = ""
     seen: str = ""
     digit: str = ""
-    # "geometry", "gemini", or "" when no digit was read. Worth keeping apart:
-    # a geometry digit is repeatable, a Gemini one is not.
+    # "geometry", "gemini", or "" when no digit was read.
+    # Geometry is repeatable; a Gemini one is not.
     digit_source: str = ""
     digit_reason: str = ""
 
@@ -95,12 +102,22 @@ def feature_score_for_tag(
 ) -> tuple[float, str | None]:
     names = tag_store.names_for(tag)
     linked = set(tag.get("drawing_ids") or [])
+    tag_id = tag["id"]
     best = 0.0
     best_id = None
     for match in feature_matches:
         drawing_id = match.get("id")
         label = (match.get("label") or "").lower()
-        if drawing_id in linked or drawing_id in names or label in names:
+        meta = match.get("metadata") or {}
+        meta_tag = str(meta.get("tag_id") or "")
+        if meta_tag == "_digit":
+            continue
+        if (
+            drawing_id in linked
+            or drawing_id in names
+            or label in names
+            or meta_tag == tag_id
+        ):
             score = float(match.get("score") or 0.0)
             if score > best:
                 best = score
@@ -305,7 +322,15 @@ class IntentRecognizer:
         rankings: list[dict[str, Any]],
         feature_matches: list[dict[str, Any]],
     ) -> RecognitionResult:
-        """Use Gemini likelihoods as the score. Feature scores are recorded, not multiplied in."""
+        """Gemini likelihoods first; one close prior can break a near-tie.
+
+        Feature scores used to be recorded and ignored. That was right while the
+        database was a handful of cartoon outlines. The labelled priors are
+        close enough to this person's hand that a 0.55/0.50 Gemini split is
+        worth breaking when exactly one candidate matches a stored drawing.
+        Two strong matches stay ignored, and a 0.95 food rank still beats a
+        cup template.
+        """
         candidates = []
         for index, row in enumerate(rankings[:TOP_K]):
             try:
@@ -330,6 +355,17 @@ class IntentRecognizer:
                     detail=str(row.get("detail") or "").strip().lower(),
                 )
             )
+        # Only mix a prior in when exactly one Gemini candidate is close to a
+        # stored drawing. Two strong matches (apple vs cup, both round) are
+        # noise, and hold-one-out on the priors is well under perfect.
+        strong = [item for item in candidates if item.feature_score >= FEATURE_BLEND_MIN]
+        if len(strong) == 1:
+            item = strong[0]
+            item.final_weight = round(
+                (1.0 - FEATURE_BLEND_WEIGHT) * item.likelihood
+                + FEATURE_BLEND_WEIGHT * item.feature_score,
+                6,
+            )
         candidates.sort(key=lambda item: item.final_weight, reverse=True)
         for index, item in enumerate(candidates):
             item.rank = index + 1
@@ -346,7 +382,9 @@ class IntentRecognizer:
         """Map the best drawing templates onto tags when Gemini is unavailable."""
         candidates = []
         used_tags: set[str] = set()
-        for index, match in enumerate(feature_matches[:TOP_K]):
+        for match in feature_matches:
+            if len(candidates) >= TOP_K:
+                break
             tag = self._tag_for_drawing(match)
             if tag is None or tag["id"] in used_tags or tag["id"] in SKIP_RANK_TAGS:
                 continue
@@ -354,6 +392,10 @@ class IntentRecognizer:
             rank = len(candidates)
             rank_weight = RANK_WEIGHTS[rank]
             score = float(match.get("score") or 0.0)
+            meta = match.get("metadata") or {}
+            detail = str(meta.get("detail") or "").strip().lower()
+            if detail in {"", "1", "2"} or detail == tag["id"]:
+                detail = ""
             candidates.append(
                 Candidate(
                     tag_id=tag["id"],
@@ -366,6 +408,7 @@ class IntentRecognizer:
                     matched_drawing_id=match.get("id"),
                     reason="Offline feature fallback",
                     source="feature_fallback",
+                    detail=detail,
                 )
             )
         top = candidates[0].tag_id if candidates else None
@@ -377,8 +420,19 @@ class IntentRecognizer:
         )
 
     def _tag_for_drawing(self, match: dict[str, Any]) -> dict[str, Any] | None:
+        meta = match.get("metadata") or {}
+        meta_tag = str(meta.get("tag_id") or "").strip()
+        if meta_tag == "_digit":
+            return None
+        if meta_tag:
+            try:
+                return self.tags.get(meta_tag)
+            except KeyError:
+                pass
         drawing_id = match.get("id")
         label = (match.get("label") or "").lower()
+        if label in {"1", "2"}:
+            return None
         for tag in self.tags.list_tags():
             names = self.tags.names_for(tag)
             if drawing_id in (tag.get("drawing_ids") or []) or drawing_id in names or label in names:

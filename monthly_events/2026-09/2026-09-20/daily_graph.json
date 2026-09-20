@@ -1,0 +1,2689 @@
+{
+  "updated_at": "2026-09-20T05:07:40+00:00",
+  "nodes": {
+    "person:patient": {
+      "id": "person:patient",
+      "type": "person",
+      "label": "Alex",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "full_name": "Alex Rivera",
+        "age": 72,
+        "notes": "Fictional example patient for local testing only. Limited motion in the right hand; uses one finger on the pad."
+      }
+    },
+    "preference:tone": {
+      "id": "preference:tone",
+      "type": "preference",
+      "label": "calm and brief",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "interest:gardening": {
+      "id": "interest:gardening",
+      "type": "interest",
+      "label": "gardening",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "interest:sketches": {
+      "id": "interest:sketches",
+      "type": "interest",
+      "label": "sketches",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "interest:morning-walks": {
+      "id": "interest:morning-walks",
+      "type": "interest",
+      "label": "morning walks",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:water": {
+      "id": "intent:water",
+      "type": "intent",
+      "label": "water",
+      "weight": 23.95,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "description": "Wants a drink of water",
+        "aliases": [
+          "drink",
+          "thirsty",
+          "cup"
+        ]
+      }
+    },
+    "intent:help": {
+      "id": "intent:help",
+      "type": "intent",
+      "label": "help",
+      "weight": 25.0795,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "description": "Needs a caregiver now",
+        "aliases": [
+          "assist",
+          "cross",
+          "call",
+          "phone"
+        ]
+      }
+    },
+    "intent:rest": {
+      "id": "intent:rest",
+      "type": "intent",
+      "label": "rest",
+      "weight": 22.8624,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "description": "Wants to rest or sleep",
+        "aliases": [
+          "sleep",
+          "tired",
+          "bed"
+        ]
+      }
+    },
+    "intent:food": {
+      "id": "intent:food",
+      "type": "intent",
+      "label": "food",
+      "weight": 29.6079,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "description": "Wants food or a meal",
+        "aliases": [
+          "eat",
+          "hungry",
+          "bowl",
+          "apple",
+          "pizza"
+        ],
+        "note": "pizza"
+      }
+    },
+    "drawing:water1": {
+      "id": "drawing:water1",
+      "type": "drawing",
+      "label": "water1",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:water2": {
+      "id": "drawing:water2",
+      "type": "drawing",
+      "label": "water2",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:water3": {
+      "id": "drawing:water3",
+      "type": "drawing",
+      "label": "water3",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:water4": {
+      "id": "drawing:water4",
+      "type": "drawing",
+      "label": "water4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:water5": {
+      "id": "drawing:water5",
+      "type": "drawing",
+      "label": "water5",
+      "weight": 23.9,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:water6": {
+      "id": "drawing:water6",
+      "type": "drawing",
+      "label": "water6",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:apple1": {
+      "id": "drawing:apple1",
+      "type": "drawing",
+      "label": "apple1",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:apple2": {
+      "id": "drawing:apple2",
+      "type": "drawing",
+      "label": "apple2",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:apple3": {
+      "id": "drawing:apple3",
+      "type": "drawing",
+      "label": "apple3",
+      "weight": 22.4,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:apple4": {
+      "id": "drawing:apple4",
+      "type": "drawing",
+      "label": "apple4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:apple5": {
+      "id": "drawing:apple5",
+      "type": "drawing",
+      "label": "apple5",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:apple6": {
+      "id": "drawing:apple6",
+      "type": "drawing",
+      "label": "apple6",
+      "weight": 28.7579,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:apple7": {
+      "id": "drawing:apple7",
+      "type": "drawing",
+      "label": "apple7",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:pizza1": {
+      "id": "drawing:pizza1",
+      "type": "drawing",
+      "label": "pizza1",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:pizza2": {
+      "id": "drawing:pizza2",
+      "type": "drawing",
+      "label": "pizza2",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:pizza3": {
+      "id": "drawing:pizza3",
+      "type": "drawing",
+      "label": "pizza3",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:pizza4": {
+      "id": "drawing:pizza4",
+      "type": "drawing",
+      "label": "pizza4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:pizza5": {
+      "id": "drawing:pizza5",
+      "type": "drawing",
+      "label": "pizza5",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:pizza6": {
+      "id": "drawing:pizza6",
+      "type": "drawing",
+      "label": "pizza6",
+      "weight": 22.45,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call1": {
+      "id": "drawing:call1",
+      "type": "drawing",
+      "label": "call1",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call10": {
+      "id": "drawing:call10",
+      "type": "drawing",
+      "label": "call10",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call2": {
+      "id": "drawing:call2",
+      "type": "drawing",
+      "label": "call2",
+      "weight": 22.5358,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call3": {
+      "id": "drawing:call3",
+      "type": "drawing",
+      "label": "call3",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call4": {
+      "id": "drawing:call4",
+      "type": "drawing",
+      "label": "call4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call5": {
+      "id": "drawing:call5",
+      "type": "drawing",
+      "label": "call5",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call6": {
+      "id": "drawing:call6",
+      "type": "drawing",
+      "label": "call6",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call7": {
+      "id": "drawing:call7",
+      "type": "drawing",
+      "label": "call7",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call8": {
+      "id": "drawing:call8",
+      "type": "drawing",
+      "label": "call8",
+      "weight": 24.5437,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:call9": {
+      "id": "drawing:call9",
+      "type": "drawing",
+      "label": "call9",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:bed": {
+      "id": "drawing:bed",
+      "type": "drawing",
+      "label": "bed",
+      "weight": 22.8624,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:yes": {
+      "id": "intent:yes",
+      "type": "intent",
+      "label": "yes",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "description": "Affirms the last question",
+        "aliases": [
+          "ok",
+          "check"
+        ]
+      }
+    },
+    "drawing:check": {
+      "id": "drawing:check",
+      "type": "drawing",
+      "label": "check",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:no": {
+      "id": "intent:no",
+      "type": "intent",
+      "label": "no",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "description": "Declines the last question",
+        "aliases": [
+          "stop"
+        ]
+      }
+    },
+    "drawing:xmark": {
+      "id": "drawing:xmark",
+      "type": "drawing",
+      "label": "xmark",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:story": {
+      "id": "intent:story",
+      "type": "intent",
+      "label": "story",
+      "weight": 23.7221,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "description": "Drew scenery, a book, an animal, or a scene and would like a short story about it",
+        "aliases": [
+          "book",
+          "scene",
+          "mountain",
+          "sun",
+          "tree",
+          "house",
+          "animal",
+          "music"
+        ]
+      }
+    },
+    "drawing:music1": {
+      "id": "drawing:music1",
+      "type": "drawing",
+      "label": "music1",
+      "weight": 22.8382,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:music2": {
+      "id": "drawing:music2",
+      "type": "drawing",
+      "label": "music2",
+      "weight": 22.8839,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:music3": {
+      "id": "drawing:music3",
+      "type": "drawing",
+      "label": "music3",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:music4": {
+      "id": "drawing:music4",
+      "type": "drawing",
+      "label": "music4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:music5": {
+      "id": "drawing:music5",
+      "type": "drawing",
+      "label": "music5",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "drawing:music6": {
+      "id": "drawing:music6",
+      "type": "drawing",
+      "label": "music6",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:talk": {
+      "id": "intent:talk",
+      "type": "intent",
+      "label": "talk",
+      "weight": 22.85,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "description": "Drew a face, a person, or a heart and wants company",
+        "aliases": [
+          "smile",
+          "face",
+          "friend",
+          "heart"
+        ]
+      }
+    },
+    "day:2026-09-20": {
+      "id": "day:2026-09-20",
+      "type": "day",
+      "label": "Sep 20",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:50+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "iso": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T04:06:50+00:00:food:fbb11c14": {
+      "id": "event:2026-09-20T04:06:50+00:00:food:fbb11c14",
+      "type": "event",
+      "label": "food (0.99)",
+      "weight": 23.96,
+      "created_at": "2026-09-20T04:06:50+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "I would like an apple, please. (apple)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T00:06:43:205:food:9a7f3b12": {
+      "id": "event:2026-09-20T00:06:43:205:food:9a7f3b12",
+      "type": "event",
+      "label": "food (0.99)",
+      "weight": 23.96,
+      "created_at": "2026-09-20T04:07:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "note": "Confirmed intent food: I would like an apple, please. (apple)"
+      }
+    },
+    "event:2026-09-20T04:07:45+00:00:food:9605c5e9": {
+      "id": "event:2026-09-20T04:07:45+00:00:food:9605c5e9",
+      "type": "event",
+      "label": "food (0.92)",
+      "weight": 23.6908,
+      "created_at": "2026-09-20T04:07:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "I would like some pizza, please. (pizza)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T00-07-39-747:food:pizza": {
+      "id": "event:2026-09-20T00-07-39-747:food:pizza",
+      "type": "event",
+      "label": "food (pizza)",
+      "weight": 21.96,
+      "created_at": "2026-09-20T04:08:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "note": "Confirmed intent food: I would like some pizza, please."
+      }
+    },
+    "event:2026-09-20T04:09:19+00:00:water:effc1d5c": {
+      "id": "event:2026-09-20T04:09:19+00:00:water:effc1d5c",
+      "type": "event",
+      "label": "water (0.95)",
+      "weight": 21.8,
+      "created_at": "2026-09-20T04:09:19+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "I would like some water, please. (cup)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "drawing:water7": {
+      "id": "drawing:water7",
+      "type": "drawing",
+      "label": "water7",
+      "weight": 20.0,
+      "created_at": "2026-09-20T04:09:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "note": "cup"
+      }
+    },
+    "event:2026-09-20T00-09-14-144:water:cup": {
+      "id": "event:2026-09-20T00-09-14-144:water:cup",
+      "type": "event",
+      "label": "water (cup)",
+      "weight": 20.0,
+      "created_at": "2026-09-20T04:09:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:10:11+00:00:story:c42127e8": {
+      "id": "event:2026-09-20T04:10:11+00:00:story:c42127e8",
+      "type": "event",
+      "label": "story (0.88)",
+      "weight": 19.5356,
+      "created_at": "2026-09-20T04:10:11+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "That looks like mountains. Want a short story? (mountains)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "drawing:mountains": {
+      "id": "drawing:mountains",
+      "type": "drawing",
+      "label": "mountains",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:10:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "note": "mountains"
+      }
+    },
+    "event:2026-09-20T00-10-02-776:story:mountains": {
+      "id": "event:2026-09-20T00-10-02-776:story:mountains",
+      "type": "event",
+      "label": "story (mountains)",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:10:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:11:15+00:00:help:b02bcc7f": {
+      "id": "event:2026-09-20T04:11:15+00:00:help:b02bcc7f",
+      "type": "event",
+      "label": "help (0.54)",
+      "weight": 16.1432,
+      "created_at": "2026-09-20T04:11:15+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "local",
+        "confirmed": true,
+        "note": "I've let Jordan Chen know. Help is on the way. (call)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6": {
+      "id": "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6",
+      "type": "event",
+      "label": "talk (0.85)",
+      "weight": 15.4,
+      "created_at": "2026-09-20T04:11:40+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "That's a face. Want some company? (face)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "drawing:face": {
+      "id": "drawing:face",
+      "type": "drawing",
+      "label": "face",
+      "weight": 16.0,
+      "created_at": "2026-09-20T04:12:18+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "note": "Confirmed intent talk: That's a face. Want some company?"
+      }
+    },
+    "event:2026-09-20T00-11-34-149:talk:face": {
+      "id": "event:2026-09-20T00-11-34-149:talk:face",
+      "type": "event",
+      "label": "talk (face)",
+      "weight": 14.0,
+      "created_at": "2026-09-20T04:12:18+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {
+        "note": "That's a face. Want some company?"
+      }
+    },
+    "event:2026-09-20T04:32:42+00:00:food:e981cb56": {
+      "id": "event:2026-09-20T04:32:42+00:00:food:e981cb56",
+      "type": "event",
+      "label": "food (0.91)",
+      "weight": 1.8104,
+      "created_at": "2026-09-20T04:32:42+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "I would like an apple, please. (apple)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T00-32-37-153:food:apple": {
+      "id": "event:2026-09-20T00-32-37-153:food:apple",
+      "type": "event",
+      "label": "food (apple)",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:33:21+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:33:25+00:00:food:d33f6307": {
+      "id": "event:2026-09-20T04:33:25+00:00:food:d33f6307",
+      "type": "event",
+      "label": "food (0.40)",
+      "weight": 0.8,
+      "created_at": "2026-09-20T04:33:25+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "Is that tea? (tea)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T00-33-14-118:food:tea": {
+      "id": "event:2026-09-20T00-33-14-118:food:tea",
+      "type": "event",
+      "label": "food (tea)",
+      "weight": 0.2001,
+      "created_at": "2026-09-20T04:34:04+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {
+        "note": "Confirmed intent food: Is that tea? (tea)"
+      }
+    },
+    "event:2026-09-20T04:34:07+00:00:story:f6e4cc64": {
+      "id": "event:2026-09-20T04:34:07+00:00:story:f6e4cc64",
+      "type": "event",
+      "label": "story (0.84)",
+      "weight": 1.6764,
+      "created_at": "2026-09-20T04:34:07+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "That looks like mountains. Want a short story? (mountains)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T00-33-59-920:story:mountains": {
+      "id": "event:2026-09-20T00-33-59-920:story:mountains",
+      "type": "event",
+      "label": "story (mountains)",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:34:47+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {
+        "note": "Confirmed intent story: That looks like mountains. Want a short story? (mountains)"
+      }
+    },
+    "event:2026-09-20T04:36:05+00:00:rest:2216978d": {
+      "id": "event:2026-09-20T04:36:05+00:00:rest:2216978d",
+      "type": "event",
+      "label": "rest (0.86)",
+      "weight": 1.7248,
+      "created_at": "2026-09-20T04:36:05+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "I would like to take a nap, please. (sleep)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T00-35-59-719:rest:bed": {
+      "id": "event:2026-09-20T00-35-59-719:rest:bed",
+      "type": "event",
+      "label": "rest (sleep)",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:36:46+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {
+        "note": "Confirmed intent rest: I would like to take a nap, please."
+      }
+    },
+    "event:2026-09-20T04:38:13+00:00:help:04a691fe": {
+      "id": "event:2026-09-20T04:38:13+00:00:help:04a691fe",
+      "type": "event",
+      "label": "help (0.57)",
+      "weight": 1.1404,
+      "created_at": "2026-09-20T04:38:13+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "I've let Jordan Chen know. Help is on the way. (call)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T00-38-03-904:help:call": {
+      "id": "event:2026-09-20T00-38-03-904:help:call",
+      "type": "event",
+      "label": "help (call)",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:38:56+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {
+        "note": "Confirmed intent help: I've let Jordan Chen know. Help is on the way."
+      }
+    },
+    "event:2026-09-20T05:01:08+00:00:food:c929876a": {
+      "id": "event:2026-09-20T05:01:08+00:00:food:c929876a",
+      "type": "event",
+      "label": "food (0.45)",
+      "weight": 0.9,
+      "created_at": "2026-09-20T05:01:08+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "Would you prefer toast? (toast)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "drawing:toast": {
+      "id": "drawing:toast",
+      "type": "drawing",
+      "label": "toast",
+      "weight": 6.0,
+      "created_at": "2026-09-20T05:01:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "note": "Confirmed intent food: Would you prefer toast?"
+      }
+    },
+    "event:2026-09-20T01-00-55-945:food:toast": {
+      "id": "event:2026-09-20T01-00-55-945:food:toast",
+      "type": "event",
+      "label": "food (toast)",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:01:51+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc": {
+      "id": "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc",
+      "type": "event",
+      "label": "help (0.54)",
+      "weight": 1.0708,
+      "created_at": "2026-09-20T05:01:54+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {
+        "source": "local",
+        "confirmed": true,
+        "note": "I've let Jordan Chen know. Help is on the way. (call)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T01-01-43-129:help:drawing": {
+      "id": "event:2026-09-20T01-01-43-129:help:drawing",
+      "type": "event",
+      "label": "help (drawing)",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:02:35+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {
+        "note": "Confirmed intent help: I've let Jordan Chen know. Help is on the way."
+      }
+    },
+    "event:2026-09-20T05:03:05+00:00:help:36bbdb53": {
+      "id": "event:2026-09-20T05:03:05+00:00:help:36bbdb53",
+      "type": "event",
+      "label": "help (0.53)",
+      "weight": 1.063,
+      "created_at": "2026-09-20T05:03:05+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "local",
+        "confirmed": true,
+        "note": "I need help, please. (h)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca": {
+      "id": "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca",
+      "type": "event",
+      "label": "help (0.91)",
+      "weight": 1.8132,
+      "created_at": "2026-09-20T05:06:31+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "I've let Jordan Chen know. Help is on the way. (call)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T05:07:00+00:00:food:7e59a2d6": {
+      "id": "event:2026-09-20T05:07:00+00:00:food:7e59a2d6",
+      "type": "event",
+      "label": "food (0.95)",
+      "weight": 1.9,
+      "created_at": "2026-09-20T05:07:00+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini",
+        "confirmed": true,
+        "note": "I would like some pizza, please. (pizza)",
+        "iso_date": "2026-09-20"
+      }
+    },
+    "event:2026-09-20T01-06-54-897:food:pizza": {
+      "id": "event:2026-09-20T01-06-54-897:food:pizza",
+      "type": "event",
+      "label": "food (pizza)",
+      "weight": 1.0,
+      "created_at": "2026-09-20T05:07:40+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "note": "Confirmed intent food: I would like some pizza, please."
+      }
+    }
+  },
+  "edges": {
+    "person:patient|prefers|preference:tone": {
+      "id": "person:patient|prefers|preference:tone",
+      "source": "person:patient",
+      "relation": "prefers",
+      "target": "preference:tone",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|interested_in|interest:gardening": {
+      "id": "person:patient|interested_in|interest:gardening",
+      "source": "person:patient",
+      "relation": "interested_in",
+      "target": "interest:gardening",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|interested_in|interest:sketches": {
+      "id": "person:patient|interested_in|interest:sketches",
+      "source": "person:patient",
+      "relation": "interested_in",
+      "target": "interest:sketches",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|interested_in|interest:morning-walks": {
+      "id": "person:patient|interested_in|interest:morning-walks",
+      "source": "person:patient",
+      "relation": "interested_in",
+      "target": "interest:morning-walks",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|uses_intent|intent:water": {
+      "id": "person:patient|uses_intent|intent:water",
+      "source": "person:patient",
+      "relation": "uses_intent",
+      "target": "intent:water",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|uses_intent|intent:help": {
+      "id": "person:patient|uses_intent|intent:help",
+      "source": "person:patient",
+      "relation": "uses_intent",
+      "target": "intent:help",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|uses_intent|intent:rest": {
+      "id": "person:patient|uses_intent|intent:rest",
+      "source": "person:patient",
+      "relation": "uses_intent",
+      "target": "intent:rest",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|uses_intent|intent:food": {
+      "id": "person:patient|uses_intent|intent:food",
+      "source": "person:patient",
+      "relation": "uses_intent",
+      "target": "intent:food",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:water|expressed_by|drawing:water1": {
+      "id": "intent:water|expressed_by|drawing:water1",
+      "source": "intent:water",
+      "relation": "expressed_by",
+      "target": "drawing:water1",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:water|expressed_by|drawing:water2": {
+      "id": "intent:water|expressed_by|drawing:water2",
+      "source": "intent:water",
+      "relation": "expressed_by",
+      "target": "drawing:water2",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:water|expressed_by|drawing:water3": {
+      "id": "intent:water|expressed_by|drawing:water3",
+      "source": "intent:water",
+      "relation": "expressed_by",
+      "target": "drawing:water3",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:water|expressed_by|drawing:water4": {
+      "id": "intent:water|expressed_by|drawing:water4",
+      "source": "intent:water",
+      "relation": "expressed_by",
+      "target": "drawing:water4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:water|expressed_by|drawing:water5": {
+      "id": "intent:water|expressed_by|drawing:water5",
+      "source": "intent:water",
+      "relation": "expressed_by",
+      "target": "drawing:water5",
+      "weight": 23.9,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:water|expressed_by|drawing:water6": {
+      "id": "intent:water|expressed_by|drawing:water6",
+      "source": "intent:water",
+      "relation": "expressed_by",
+      "target": "drawing:water6",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:apple1": {
+      "id": "intent:food|expressed_by|drawing:apple1",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:apple1",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:apple2": {
+      "id": "intent:food|expressed_by|drawing:apple2",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:apple2",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:apple3": {
+      "id": "intent:food|expressed_by|drawing:apple3",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:apple3",
+      "weight": 22.4,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:apple4": {
+      "id": "intent:food|expressed_by|drawing:apple4",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:apple4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:apple5": {
+      "id": "intent:food|expressed_by|drawing:apple5",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:apple5",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:apple6": {
+      "id": "intent:food|expressed_by|drawing:apple6",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:apple6",
+      "weight": 28.7579,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:apple7": {
+      "id": "intent:food|expressed_by|drawing:apple7",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:apple7",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:pizza1": {
+      "id": "intent:food|expressed_by|drawing:pizza1",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:pizza1",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:pizza2": {
+      "id": "intent:food|expressed_by|drawing:pizza2",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:pizza2",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:pizza3": {
+      "id": "intent:food|expressed_by|drawing:pizza3",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:pizza3",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:pizza4": {
+      "id": "intent:food|expressed_by|drawing:pizza4",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:pizza4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:pizza5": {
+      "id": "intent:food|expressed_by|drawing:pizza5",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:pizza5",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:pizza6": {
+      "id": "intent:food|expressed_by|drawing:pizza6",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:pizza6",
+      "weight": 22.45,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call1": {
+      "id": "intent:help|expressed_by|drawing:call1",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call1",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call10": {
+      "id": "intent:help|expressed_by|drawing:call10",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call10",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call2": {
+      "id": "intent:help|expressed_by|drawing:call2",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call2",
+      "weight": 22.5358,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call3": {
+      "id": "intent:help|expressed_by|drawing:call3",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call3",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call4": {
+      "id": "intent:help|expressed_by|drawing:call4",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call5": {
+      "id": "intent:help|expressed_by|drawing:call5",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call5",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call6": {
+      "id": "intent:help|expressed_by|drawing:call6",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call6",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call7": {
+      "id": "intent:help|expressed_by|drawing:call7",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call7",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call8": {
+      "id": "intent:help|expressed_by|drawing:call8",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call8",
+      "weight": 24.5437,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:help|expressed_by|drawing:call9": {
+      "id": "intent:help|expressed_by|drawing:call9",
+      "source": "intent:help",
+      "relation": "expressed_by",
+      "target": "drawing:call9",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:rest|expressed_by|drawing:bed": {
+      "id": "intent:rest|expressed_by|drawing:bed",
+      "source": "intent:rest",
+      "relation": "expressed_by",
+      "target": "drawing:bed",
+      "weight": 22.8624,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|uses_intent|intent:yes": {
+      "id": "person:patient|uses_intent|intent:yes",
+      "source": "person:patient",
+      "relation": "uses_intent",
+      "target": "intent:yes",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:yes|expressed_by|drawing:check": {
+      "id": "intent:yes|expressed_by|drawing:check",
+      "source": "intent:yes",
+      "relation": "expressed_by",
+      "target": "drawing:check",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|uses_intent|intent:no": {
+      "id": "person:patient|uses_intent|intent:no",
+      "source": "person:patient",
+      "relation": "uses_intent",
+      "target": "intent:no",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:no|expressed_by|drawing:xmark": {
+      "id": "intent:no|expressed_by|drawing:xmark",
+      "source": "intent:no",
+      "relation": "expressed_by",
+      "target": "drawing:xmark",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|uses_intent|intent:story": {
+      "id": "person:patient|uses_intent|intent:story",
+      "source": "person:patient",
+      "relation": "uses_intent",
+      "target": "intent:story",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:story|expressed_by|drawing:music1": {
+      "id": "intent:story|expressed_by|drawing:music1",
+      "source": "intent:story",
+      "relation": "expressed_by",
+      "target": "drawing:music1",
+      "weight": 22.8382,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:story|expressed_by|drawing:music2": {
+      "id": "intent:story|expressed_by|drawing:music2",
+      "source": "intent:story",
+      "relation": "expressed_by",
+      "target": "drawing:music2",
+      "weight": 22.8839,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:story|expressed_by|drawing:music3": {
+      "id": "intent:story|expressed_by|drawing:music3",
+      "source": "intent:story",
+      "relation": "expressed_by",
+      "target": "drawing:music3",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:story|expressed_by|drawing:music4": {
+      "id": "intent:story|expressed_by|drawing:music4",
+      "source": "intent:story",
+      "relation": "expressed_by",
+      "target": "drawing:music4",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:story|expressed_by|drawing:music5": {
+      "id": "intent:story|expressed_by|drawing:music5",
+      "source": "intent:story",
+      "relation": "expressed_by",
+      "target": "drawing:music5",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:story|expressed_by|drawing:music6": {
+      "id": "intent:story|expressed_by|drawing:music6",
+      "source": "intent:story",
+      "relation": "expressed_by",
+      "target": "drawing:music6",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|uses_intent|intent:talk": {
+      "id": "person:patient|uses_intent|intent:talk",
+      "source": "person:patient",
+      "relation": "uses_intent",
+      "target": "intent:talk",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:43+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|active_on|day:2026-09-20": {
+      "id": "person:patient|active_on|day:2026-09-20",
+      "source": "person:patient",
+      "relation": "active_on",
+      "target": "day:2026-09-20",
+      "weight": 22.0,
+      "created_at": "2026-09-20T04:06:50+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|requested|intent:food": {
+      "id": "person:patient|requested|intent:food",
+      "source": "person:patient",
+      "relation": "requested",
+      "target": "intent:food",
+      "weight": 29.6079,
+      "created_at": "2026-09-20T04:06:50+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini"
+      }
+    },
+    "intent:food|occurred_on|day:2026-09-20": {
+      "id": "intent:food|occurred_on|day:2026-09-20",
+      "source": "intent:food",
+      "relation": "occurred_on",
+      "target": "day:2026-09-20",
+      "weight": 29.6079,
+      "created_at": "2026-09-20T04:06:50+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:06:50+00:00:food:fbb11c14": {
+      "id": "person:patient|had_event|event:2026-09-20T04:06:50+00:00:food:fbb11c14",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:06:50+00:00:food:fbb11c14",
+      "weight": 23.96,
+      "created_at": "2026-09-20T04:06:50+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:06:50+00:00:food:fbb11c14|about|intent:food": {
+      "id": "event:2026-09-20T04:06:50+00:00:food:fbb11c14|about|intent:food",
+      "source": "event:2026-09-20T04:06:50+00:00:food:fbb11c14",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 23.96,
+      "created_at": "2026-09-20T04:06:50+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:06:50+00:00:food:fbb11c14|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:06:50+00:00:food:fbb11c14|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:06:50+00:00:food:fbb11c14",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 23.96,
+      "created_at": "2026-09-20T04:06:50+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00:06:43:205:food:9a7f3b12": {
+      "id": "person:patient|had_event|event:2026-09-20T00:06:43:205:food:9a7f3b12",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00:06:43:205:food:9a7f3b12",
+      "weight": 23.96,
+      "created_at": "2026-09-20T04:07:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00:06:43:205:food:9a7f3b12|about|intent:food": {
+      "id": "event:2026-09-20T00:06:43:205:food:9a7f3b12|about|intent:food",
+      "source": "event:2026-09-20T00:06:43:205:food:9a7f3b12",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 23.96,
+      "created_at": "2026-09-20T04:07:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00:06:43:205:food:9a7f3b12|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00:06:43:205:food:9a7f3b12|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00:06:43:205:food:9a7f3b12",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 23.96,
+      "created_at": "2026-09-20T04:07:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:07:45+00:00:food:9605c5e9": {
+      "id": "person:patient|had_event|event:2026-09-20T04:07:45+00:00:food:9605c5e9",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:07:45+00:00:food:9605c5e9",
+      "weight": 23.6908,
+      "created_at": "2026-09-20T04:07:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:07:45+00:00:food:9605c5e9|about|intent:food": {
+      "id": "event:2026-09-20T04:07:45+00:00:food:9605c5e9|about|intent:food",
+      "source": "event:2026-09-20T04:07:45+00:00:food:9605c5e9",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 23.6908,
+      "created_at": "2026-09-20T04:07:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:07:45+00:00:food:9605c5e9|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:07:45+00:00:food:9605c5e9|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:07:45+00:00:food:9605c5e9",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 23.6908,
+      "created_at": "2026-09-20T04:07:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-07-39-747:food:pizza": {
+      "id": "person:patient|had_event|event:2026-09-20T00-07-39-747:food:pizza",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-07-39-747:food:pizza",
+      "weight": 21.96,
+      "created_at": "2026-09-20T04:08:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-07-39-747:food:pizza|about|intent:food": {
+      "id": "event:2026-09-20T00-07-39-747:food:pizza|about|intent:food",
+      "source": "event:2026-09-20T00-07-39-747:food:pizza",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 21.96,
+      "created_at": "2026-09-20T04:08:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-07-39-747:food:pizza|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-07-39-747:food:pizza|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-07-39-747:food:pizza",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 21.96,
+      "created_at": "2026-09-20T04:08:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:07:45+00:00:food:9605c5e9|followed|event:2026-09-20T00-07-39-747:food:pizza": {
+      "id": "event:2026-09-20T04:07:45+00:00:food:9605c5e9|followed|event:2026-09-20T00-07-39-747:food:pizza",
+      "source": "event:2026-09-20T04:07:45+00:00:food:9605c5e9",
+      "relation": "followed",
+      "target": "event:2026-09-20T00-07-39-747:food:pizza",
+      "weight": 20.0,
+      "created_at": "2026-09-20T04:08:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-07-39-747:food:pizza|confirmed|intent:food": {
+      "id": "event:2026-09-20T00-07-39-747:food:pizza|confirmed|intent:food",
+      "source": "event:2026-09-20T00-07-39-747:food:pizza",
+      "relation": "confirmed",
+      "target": "intent:food",
+      "weight": 20.0,
+      "created_at": "2026-09-20T04:08:16+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|requested|intent:water": {
+      "id": "person:patient|requested|intent:water",
+      "source": "person:patient",
+      "relation": "requested",
+      "target": "intent:water",
+      "weight": 22.9,
+      "created_at": "2026-09-20T04:09:19+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini"
+      }
+    },
+    "intent:water|occurred_on|day:2026-09-20": {
+      "id": "intent:water|occurred_on|day:2026-09-20",
+      "source": "intent:water",
+      "relation": "occurred_on",
+      "target": "day:2026-09-20",
+      "weight": 22.9,
+      "created_at": "2026-09-20T04:09:19+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:09:19+00:00:water:effc1d5c": {
+      "id": "person:patient|had_event|event:2026-09-20T04:09:19+00:00:water:effc1d5c",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:09:19+00:00:water:effc1d5c",
+      "weight": 21.8,
+      "created_at": "2026-09-20T04:09:19+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:09:19+00:00:water:effc1d5c|about|intent:water": {
+      "id": "event:2026-09-20T04:09:19+00:00:water:effc1d5c|about|intent:water",
+      "source": "event:2026-09-20T04:09:19+00:00:water:effc1d5c",
+      "relation": "about",
+      "target": "intent:water",
+      "weight": 21.8,
+      "created_at": "2026-09-20T04:09:19+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:09:19+00:00:water:effc1d5c|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:09:19+00:00:water:effc1d5c|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:09:19+00:00:water:effc1d5c",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 21.8,
+      "created_at": "2026-09-20T04:09:19+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:water|expressed_by|drawing:water7": {
+      "id": "intent:water|expressed_by|drawing:water7",
+      "source": "intent:water",
+      "relation": "expressed_by",
+      "target": "drawing:water7",
+      "weight": 20.0,
+      "created_at": "2026-09-20T04:09:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-09-14-144:water:cup": {
+      "id": "person:patient|had_event|event:2026-09-20T00-09-14-144:water:cup",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-09-14-144:water:cup",
+      "weight": 20.0,
+      "created_at": "2026-09-20T04:09:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-09-14-144:water:cup|about|intent:water": {
+      "id": "event:2026-09-20T00-09-14-144:water:cup|about|intent:water",
+      "source": "event:2026-09-20T00-09-14-144:water:cup",
+      "relation": "about",
+      "target": "intent:water",
+      "weight": 20.0,
+      "created_at": "2026-09-20T04:09:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-09-14-144:water:cup|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-09-14-144:water:cup|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-09-14-144:water:cup",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 20.0,
+      "created_at": "2026-09-20T04:09:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-09-14-144:water:cup|followed|event:2026-09-20T04:09:19+00:00:water:effc1d5c": {
+      "id": "event:2026-09-20T00-09-14-144:water:cup|followed|event:2026-09-20T04:09:19+00:00:water:effc1d5c",
+      "source": "event:2026-09-20T00-09-14-144:water:cup",
+      "relation": "followed",
+      "target": "event:2026-09-20T04:09:19+00:00:water:effc1d5c",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:09:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-09-14-144:water:cup|confirmed|intent:water": {
+      "id": "event:2026-09-20T00-09-14-144:water:cup|confirmed|intent:water",
+      "source": "event:2026-09-20T00-09-14-144:water:cup",
+      "relation": "confirmed",
+      "target": "intent:water",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:09:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|requested|intent:story": {
+      "id": "person:patient|requested|intent:story",
+      "source": "person:patient",
+      "relation": "requested",
+      "target": "intent:story",
+      "weight": 21.606,
+      "created_at": "2026-09-20T04:10:11+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini"
+      }
+    },
+    "intent:story|occurred_on|day:2026-09-20": {
+      "id": "intent:story|occurred_on|day:2026-09-20",
+      "source": "intent:story",
+      "relation": "occurred_on",
+      "target": "day:2026-09-20",
+      "weight": 21.606,
+      "created_at": "2026-09-20T04:10:11+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:10:11+00:00:story:c42127e8": {
+      "id": "person:patient|had_event|event:2026-09-20T04:10:11+00:00:story:c42127e8",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:10:11+00:00:story:c42127e8",
+      "weight": 19.5356,
+      "created_at": "2026-09-20T04:10:11+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:10:11+00:00:story:c42127e8|about|intent:story": {
+      "id": "event:2026-09-20T04:10:11+00:00:story:c42127e8|about|intent:story",
+      "source": "event:2026-09-20T04:10:11+00:00:story:c42127e8",
+      "relation": "about",
+      "target": "intent:story",
+      "weight": 19.5356,
+      "created_at": "2026-09-20T04:10:11+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:10:11+00:00:story:c42127e8|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:10:11+00:00:story:c42127e8|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:10:11+00:00:story:c42127e8",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 19.5356,
+      "created_at": "2026-09-20T04:10:11+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "intent:story|expressed_by|drawing:mountains": {
+      "id": "intent:story|expressed_by|drawing:mountains",
+      "source": "intent:story",
+      "relation": "expressed_by",
+      "target": "drawing:mountains",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:10:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-10-02-776:story:mountains": {
+      "id": "person:patient|had_event|event:2026-09-20T00-10-02-776:story:mountains",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-10-02-776:story:mountains",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:10:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-10-02-776:story:mountains|about|intent:story": {
+      "id": "event:2026-09-20T00-10-02-776:story:mountains|about|intent:story",
+      "source": "event:2026-09-20T00-10-02-776:story:mountains",
+      "relation": "about",
+      "target": "intent:story",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:10:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-10-02-776:story:mountains|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-10-02-776:story:mountains|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-10-02-776:story:mountains",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:10:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-10-02-776:story:mountains|followed|event:2026-09-20T04:10:11+00:00:story:c42127e8": {
+      "id": "event:2026-09-20T00-10-02-776:story:mountains|followed|event:2026-09-20T04:10:11+00:00:story:c42127e8",
+      "source": "event:2026-09-20T00-10-02-776:story:mountains",
+      "relation": "followed",
+      "target": "event:2026-09-20T04:10:11+00:00:story:c42127e8",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:10:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-10-02-776:story:mountains|confirmed|intent:story": {
+      "id": "event:2026-09-20T00-10-02-776:story:mountains|confirmed|intent:story",
+      "source": "event:2026-09-20T00-10-02-776:story:mountains",
+      "relation": "confirmed",
+      "target": "intent:story",
+      "weight": 18.0,
+      "created_at": "2026-09-20T04:10:45+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|requested|intent:help": {
+      "id": "person:patient|requested|intent:help",
+      "source": "person:patient",
+      "relation": "requested",
+      "target": "intent:help",
+      "weight": 18.6869,
+      "created_at": "2026-09-20T04:11:15+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini"
+      }
+    },
+    "intent:help|occurred_on|day:2026-09-20": {
+      "id": "intent:help|occurred_on|day:2026-09-20",
+      "source": "intent:help",
+      "relation": "occurred_on",
+      "target": "day:2026-09-20",
+      "weight": 18.6869,
+      "created_at": "2026-09-20T04:11:15+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:11:15+00:00:help:b02bcc7f": {
+      "id": "person:patient|had_event|event:2026-09-20T04:11:15+00:00:help:b02bcc7f",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:11:15+00:00:help:b02bcc7f",
+      "weight": 16.1432,
+      "created_at": "2026-09-20T04:11:15+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:11:15+00:00:help:b02bcc7f|about|intent:help": {
+      "id": "event:2026-09-20T04:11:15+00:00:help:b02bcc7f|about|intent:help",
+      "source": "event:2026-09-20T04:11:15+00:00:help:b02bcc7f",
+      "relation": "about",
+      "target": "intent:help",
+      "weight": 16.1432,
+      "created_at": "2026-09-20T04:11:15+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:11:15+00:00:help:b02bcc7f|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:11:15+00:00:help:b02bcc7f|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:11:15+00:00:help:b02bcc7f",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 16.1432,
+      "created_at": "2026-09-20T04:11:15+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|requested|intent:talk": {
+      "id": "person:patient|requested|intent:talk",
+      "source": "person:patient",
+      "relation": "requested",
+      "target": "intent:talk",
+      "weight": 18.7,
+      "created_at": "2026-09-20T04:11:40+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini"
+      }
+    },
+    "intent:talk|occurred_on|day:2026-09-20": {
+      "id": "intent:talk|occurred_on|day:2026-09-20",
+      "source": "intent:talk",
+      "relation": "occurred_on",
+      "target": "day:2026-09-20",
+      "weight": 18.7,
+      "created_at": "2026-09-20T04:11:40+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:11:40+00:00:talk:49f2e3f6": {
+      "id": "person:patient|had_event|event:2026-09-20T04:11:40+00:00:talk:49f2e3f6",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6",
+      "weight": 15.4,
+      "created_at": "2026-09-20T04:11:40+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6|about|intent:talk": {
+      "id": "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6|about|intent:talk",
+      "source": "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6",
+      "relation": "about",
+      "target": "intent:talk",
+      "weight": 15.4,
+      "created_at": "2026-09-20T04:11:40+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 15.4,
+      "created_at": "2026-09-20T04:11:40+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "intent:talk|expressed_by|drawing:face": {
+      "id": "intent:talk|expressed_by|drawing:face",
+      "source": "intent:talk",
+      "relation": "expressed_by",
+      "target": "drawing:face",
+      "weight": 16.0,
+      "created_at": "2026-09-20T04:12:18+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-11-34-149:talk:face": {
+      "id": "person:patient|had_event|event:2026-09-20T00-11-34-149:talk:face",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-11-34-149:talk:face",
+      "weight": 14.0,
+      "created_at": "2026-09-20T04:12:18+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-11-34-149:talk:face|about|intent:talk": {
+      "id": "event:2026-09-20T00-11-34-149:talk:face|about|intent:talk",
+      "source": "event:2026-09-20T00-11-34-149:talk:face",
+      "relation": "about",
+      "target": "intent:talk",
+      "weight": 14.0,
+      "created_at": "2026-09-20T04:12:18+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-11-34-149:talk:face|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-11-34-149:talk:face|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-11-34-149:talk:face",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 14.0,
+      "created_at": "2026-09-20T04:12:18+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-11-34-149:talk:face|followed|event:2026-09-20T04:11:40+00:00:talk:49f2e3f6": {
+      "id": "event:2026-09-20T00-11-34-149:talk:face|followed|event:2026-09-20T04:11:40+00:00:talk:49f2e3f6",
+      "source": "event:2026-09-20T00-11-34-149:talk:face",
+      "relation": "followed",
+      "target": "event:2026-09-20T04:11:40+00:00:talk:49f2e3f6",
+      "weight": 14.0,
+      "created_at": "2026-09-20T04:12:18+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-11-34-149:talk:face|confirmed|intent:talk": {
+      "id": "event:2026-09-20T00-11-34-149:talk:face|confirmed|intent:talk",
+      "source": "event:2026-09-20T00-11-34-149:talk:face",
+      "relation": "confirmed",
+      "target": "intent:talk",
+      "weight": 14.0,
+      "created_at": "2026-09-20T04:12:18+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:32:42+00:00:food:e981cb56": {
+      "id": "person:patient|had_event|event:2026-09-20T04:32:42+00:00:food:e981cb56",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:32:42+00:00:food:e981cb56",
+      "weight": 1.8104,
+      "created_at": "2026-09-20T04:32:42+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:32:42+00:00:food:e981cb56|about|intent:food": {
+      "id": "event:2026-09-20T04:32:42+00:00:food:e981cb56|about|intent:food",
+      "source": "event:2026-09-20T04:32:42+00:00:food:e981cb56",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 1.8104,
+      "created_at": "2026-09-20T04:32:42+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:32:42+00:00:food:e981cb56|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:32:42+00:00:food:e981cb56|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:32:42+00:00:food:e981cb56",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.8104,
+      "created_at": "2026-09-20T04:32:42+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-32-37-153:food:apple": {
+      "id": "person:patient|had_event|event:2026-09-20T00-32-37-153:food:apple",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-32-37-153:food:apple",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:33:21+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-32-37-153:food:apple|about|intent:food": {
+      "id": "event:2026-09-20T00-32-37-153:food:apple|about|intent:food",
+      "source": "event:2026-09-20T00-32-37-153:food:apple",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:33:21+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-32-37-153:food:apple|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-32-37-153:food:apple|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-32-37-153:food:apple",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:33:21+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-32-37-153:food:apple|confirmed|intent:food": {
+      "id": "event:2026-09-20T00-32-37-153:food:apple|confirmed|intent:food",
+      "source": "event:2026-09-20T00-32-37-153:food:apple",
+      "relation": "confirmed",
+      "target": "intent:food",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:33:21+00:00",
+      "last_seen": "2026-09-20T04:33:21+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:33:25+00:00:food:d33f6307": {
+      "id": "person:patient|had_event|event:2026-09-20T04:33:25+00:00:food:d33f6307",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:33:25+00:00:food:d33f6307",
+      "weight": 0.8,
+      "created_at": "2026-09-20T04:33:25+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:33:25+00:00:food:d33f6307|about|intent:food": {
+      "id": "event:2026-09-20T04:33:25+00:00:food:d33f6307|about|intent:food",
+      "source": "event:2026-09-20T04:33:25+00:00:food:d33f6307",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 0.8,
+      "created_at": "2026-09-20T04:33:25+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:33:25+00:00:food:d33f6307|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:33:25+00:00:food:d33f6307|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:33:25+00:00:food:d33f6307",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 0.8,
+      "created_at": "2026-09-20T04:33:25+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-33-14-118:food:tea": {
+      "id": "person:patient|had_event|event:2026-09-20T00-33-14-118:food:tea",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-33-14-118:food:tea",
+      "weight": 0.2001,
+      "created_at": "2026-09-20T04:34:04+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-33-14-118:food:tea|about|intent:food": {
+      "id": "event:2026-09-20T00-33-14-118:food:tea|about|intent:food",
+      "source": "event:2026-09-20T00-33-14-118:food:tea",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 0.2001,
+      "created_at": "2026-09-20T04:34:04+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-33-14-118:food:tea|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-33-14-118:food:tea|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-33-14-118:food:tea",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 0.2001,
+      "created_at": "2026-09-20T04:34:04+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-33-14-118:food:tea|confirmed|intent:food": {
+      "id": "event:2026-09-20T00-33-14-118:food:tea|confirmed|intent:food",
+      "source": "event:2026-09-20T00-33-14-118:food:tea",
+      "relation": "confirmed",
+      "target": "intent:food",
+      "weight": 0.2001,
+      "created_at": "2026-09-20T04:34:04+00:00",
+      "last_seen": "2026-09-20T04:34:04+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:34:07+00:00:story:f6e4cc64": {
+      "id": "person:patient|had_event|event:2026-09-20T04:34:07+00:00:story:f6e4cc64",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:34:07+00:00:story:f6e4cc64",
+      "weight": 1.6764,
+      "created_at": "2026-09-20T04:34:07+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:34:07+00:00:story:f6e4cc64|about|intent:story": {
+      "id": "event:2026-09-20T04:34:07+00:00:story:f6e4cc64|about|intent:story",
+      "source": "event:2026-09-20T04:34:07+00:00:story:f6e4cc64",
+      "relation": "about",
+      "target": "intent:story",
+      "weight": 1.6764,
+      "created_at": "2026-09-20T04:34:07+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:34:07+00:00:story:f6e4cc64|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:34:07+00:00:story:f6e4cc64|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:34:07+00:00:story:f6e4cc64",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.6764,
+      "created_at": "2026-09-20T04:34:07+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-33-59-920:story:mountains": {
+      "id": "person:patient|had_event|event:2026-09-20T00-33-59-920:story:mountains",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-33-59-920:story:mountains",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:34:47+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-33-59-920:story:mountains|about|intent:story": {
+      "id": "event:2026-09-20T00-33-59-920:story:mountains|about|intent:story",
+      "source": "event:2026-09-20T00-33-59-920:story:mountains",
+      "relation": "about",
+      "target": "intent:story",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:34:47+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-33-59-920:story:mountains|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-33-59-920:story:mountains|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-33-59-920:story:mountains",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:34:47+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-33-59-920:story:mountains|followed|event:2026-09-20T00-10-02-776:story:mountains": {
+      "id": "event:2026-09-20T00-33-59-920:story:mountains|followed|event:2026-09-20T00-10-02-776:story:mountains",
+      "source": "event:2026-09-20T00-33-59-920:story:mountains",
+      "relation": "followed",
+      "target": "event:2026-09-20T00-10-02-776:story:mountains",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:34:47+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-33-59-920:story:mountains|confirmed|intent:story": {
+      "id": "event:2026-09-20T00-33-59-920:story:mountains|confirmed|intent:story",
+      "source": "event:2026-09-20T00-33-59-920:story:mountains",
+      "relation": "confirmed",
+      "target": "intent:story",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:34:47+00:00",
+      "last_seen": "2026-09-20T04:34:47+00:00",
+      "props": {}
+    },
+    "person:patient|requested|intent:rest": {
+      "id": "person:patient|requested|intent:rest",
+      "source": "person:patient",
+      "relation": "requested",
+      "target": "intent:rest",
+      "weight": 10.7248,
+      "created_at": "2026-09-20T04:36:05+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {
+        "source": "gemini"
+      }
+    },
+    "intent:rest|occurred_on|day:2026-09-20": {
+      "id": "intent:rest|occurred_on|day:2026-09-20",
+      "source": "intent:rest",
+      "relation": "occurred_on",
+      "target": "day:2026-09-20",
+      "weight": 10.7248,
+      "created_at": "2026-09-20T04:36:05+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:36:05+00:00:rest:2216978d": {
+      "id": "person:patient|had_event|event:2026-09-20T04:36:05+00:00:rest:2216978d",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:36:05+00:00:rest:2216978d",
+      "weight": 1.7248,
+      "created_at": "2026-09-20T04:36:05+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:36:05+00:00:rest:2216978d|about|intent:rest": {
+      "id": "event:2026-09-20T04:36:05+00:00:rest:2216978d|about|intent:rest",
+      "source": "event:2026-09-20T04:36:05+00:00:rest:2216978d",
+      "relation": "about",
+      "target": "intent:rest",
+      "weight": 1.7248,
+      "created_at": "2026-09-20T04:36:05+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:36:05+00:00:rest:2216978d|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:36:05+00:00:rest:2216978d|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:36:05+00:00:rest:2216978d",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.7248,
+      "created_at": "2026-09-20T04:36:05+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-35-59-719:rest:bed": {
+      "id": "person:patient|had_event|event:2026-09-20T00-35-59-719:rest:bed",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-35-59-719:rest:bed",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:36:46+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-35-59-719:rest:bed|about|intent:rest": {
+      "id": "event:2026-09-20T00-35-59-719:rest:bed|about|intent:rest",
+      "source": "event:2026-09-20T00-35-59-719:rest:bed",
+      "relation": "about",
+      "target": "intent:rest",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:36:46+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-35-59-719:rest:bed|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-35-59-719:rest:bed|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-35-59-719:rest:bed",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:36:46+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-35-59-719:rest:bed|confirmed|intent:rest": {
+      "id": "event:2026-09-20T00-35-59-719:rest:bed|confirmed|intent:rest",
+      "source": "event:2026-09-20T00-35-59-719:rest:bed",
+      "relation": "confirmed",
+      "target": "intent:rest",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:36:46+00:00",
+      "last_seen": "2026-09-20T04:36:46+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T04:38:13+00:00:help:04a691fe": {
+      "id": "person:patient|had_event|event:2026-09-20T04:38:13+00:00:help:04a691fe",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T04:38:13+00:00:help:04a691fe",
+      "weight": 1.1404,
+      "created_at": "2026-09-20T04:38:13+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:38:13+00:00:help:04a691fe|about|intent:help": {
+      "id": "event:2026-09-20T04:38:13+00:00:help:04a691fe|about|intent:help",
+      "source": "event:2026-09-20T04:38:13+00:00:help:04a691fe",
+      "relation": "about",
+      "target": "intent:help",
+      "weight": 1.1404,
+      "created_at": "2026-09-20T04:38:13+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T04:38:13+00:00:help:04a691fe|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T04:38:13+00:00:help:04a691fe|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T04:38:13+00:00:help:04a691fe",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.1404,
+      "created_at": "2026-09-20T04:38:13+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T00-38-03-904:help:call": {
+      "id": "person:patient|had_event|event:2026-09-20T00-38-03-904:help:call",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T00-38-03-904:help:call",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:38:56+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-38-03-904:help:call|about|intent:help": {
+      "id": "event:2026-09-20T00-38-03-904:help:call|about|intent:help",
+      "source": "event:2026-09-20T00-38-03-904:help:call",
+      "relation": "about",
+      "target": "intent:help",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:38:56+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-38-03-904:help:call|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T00-38-03-904:help:call|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T00-38-03-904:help:call",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:38:56+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T00-38-03-904:help:call|confirmed|intent:help": {
+      "id": "event:2026-09-20T00-38-03-904:help:call|confirmed|intent:help",
+      "source": "event:2026-09-20T00-38-03-904:help:call",
+      "relation": "confirmed",
+      "target": "intent:help",
+      "weight": 1.0,
+      "created_at": "2026-09-20T04:38:56+00:00",
+      "last_seen": "2026-09-20T04:38:56+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T05:01:08+00:00:food:c929876a": {
+      "id": "person:patient|had_event|event:2026-09-20T05:01:08+00:00:food:c929876a",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T05:01:08+00:00:food:c929876a",
+      "weight": 0.9,
+      "created_at": "2026-09-20T05:01:08+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:01:08+00:00:food:c929876a|about|intent:food": {
+      "id": "event:2026-09-20T05:01:08+00:00:food:c929876a|about|intent:food",
+      "source": "event:2026-09-20T05:01:08+00:00:food:c929876a",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 0.9,
+      "created_at": "2026-09-20T05:01:08+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:01:08+00:00:food:c929876a|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T05:01:08+00:00:food:c929876a|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T05:01:08+00:00:food:c929876a",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 0.9,
+      "created_at": "2026-09-20T05:01:08+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {}
+    },
+    "intent:food|expressed_by|drawing:toast": {
+      "id": "intent:food|expressed_by|drawing:toast",
+      "source": "intent:food",
+      "relation": "expressed_by",
+      "target": "drawing:toast",
+      "weight": 6.0,
+      "created_at": "2026-09-20T05:01:51+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T01-00-55-945:food:toast": {
+      "id": "person:patient|had_event|event:2026-09-20T01-00-55-945:food:toast",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T01-00-55-945:food:toast",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:01:51+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-00-55-945:food:toast|about|intent:food": {
+      "id": "event:2026-09-20T01-00-55-945:food:toast|about|intent:food",
+      "source": "event:2026-09-20T01-00-55-945:food:toast",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:01:51+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-00-55-945:food:toast|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T01-00-55-945:food:toast|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T01-00-55-945:food:toast",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:01:51+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-00-55-945:food:toast|confirmed|intent:food": {
+      "id": "event:2026-09-20T01-00-55-945:food:toast|confirmed|intent:food",
+      "source": "event:2026-09-20T01-00-55-945:food:toast",
+      "relation": "confirmed",
+      "target": "intent:food",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:01:51+00:00",
+      "last_seen": "2026-09-20T05:01:51+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T05:01:54+00:00:help:fdb1a6cc": {
+      "id": "person:patient|had_event|event:2026-09-20T05:01:54+00:00:help:fdb1a6cc",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc",
+      "weight": 1.0708,
+      "created_at": "2026-09-20T05:01:54+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc|about|intent:help": {
+      "id": "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc|about|intent:help",
+      "source": "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc",
+      "relation": "about",
+      "target": "intent:help",
+      "weight": 1.0708,
+      "created_at": "2026-09-20T05:01:54+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.0708,
+      "created_at": "2026-09-20T05:01:54+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T01-01-43-129:help:drawing": {
+      "id": "person:patient|had_event|event:2026-09-20T01-01-43-129:help:drawing",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T01-01-43-129:help:drawing",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:02:35+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-01-43-129:help:drawing|about|intent:help": {
+      "id": "event:2026-09-20T01-01-43-129:help:drawing|about|intent:help",
+      "source": "event:2026-09-20T01-01-43-129:help:drawing",
+      "relation": "about",
+      "target": "intent:help",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:02:35+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-01-43-129:help:drawing|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T01-01-43-129:help:drawing|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T01-01-43-129:help:drawing",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:02:35+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-01-43-129:help:drawing|followed|event:2026-09-20T05:01:54+00:00:help:fdb1a6cc": {
+      "id": "event:2026-09-20T01-01-43-129:help:drawing|followed|event:2026-09-20T05:01:54+00:00:help:fdb1a6cc",
+      "source": "event:2026-09-20T01-01-43-129:help:drawing",
+      "relation": "followed",
+      "target": "event:2026-09-20T05:01:54+00:00:help:fdb1a6cc",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:02:35+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-01-43-129:help:drawing|confirmed|intent:help": {
+      "id": "event:2026-09-20T01-01-43-129:help:drawing|confirmed|intent:help",
+      "source": "event:2026-09-20T01-01-43-129:help:drawing",
+      "relation": "confirmed",
+      "target": "intent:help",
+      "weight": 2.0,
+      "created_at": "2026-09-20T05:02:35+00:00",
+      "last_seen": "2026-09-20T05:02:35+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T05:03:05+00:00:help:36bbdb53": {
+      "id": "person:patient|had_event|event:2026-09-20T05:03:05+00:00:help:36bbdb53",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T05:03:05+00:00:help:36bbdb53",
+      "weight": 1.063,
+      "created_at": "2026-09-20T05:03:05+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:03:05+00:00:help:36bbdb53|about|intent:help": {
+      "id": "event:2026-09-20T05:03:05+00:00:help:36bbdb53|about|intent:help",
+      "source": "event:2026-09-20T05:03:05+00:00:help:36bbdb53",
+      "relation": "about",
+      "target": "intent:help",
+      "weight": 1.063,
+      "created_at": "2026-09-20T05:03:05+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:03:05+00:00:help:36bbdb53|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T05:03:05+00:00:help:36bbdb53|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T05:03:05+00:00:help:36bbdb53",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.063,
+      "created_at": "2026-09-20T05:03:05+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T05:06:31+00:00:help:1e6fd8ca": {
+      "id": "person:patient|had_event|event:2026-09-20T05:06:31+00:00:help:1e6fd8ca",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca",
+      "weight": 1.8132,
+      "created_at": "2026-09-20T05:06:31+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca|about|intent:help": {
+      "id": "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca|about|intent:help",
+      "source": "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca",
+      "relation": "about",
+      "target": "intent:help",
+      "weight": 1.8132,
+      "created_at": "2026-09-20T05:06:31+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T05:06:31+00:00:help:1e6fd8ca",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.8132,
+      "created_at": "2026-09-20T05:06:31+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T05:07:00+00:00:food:7e59a2d6": {
+      "id": "person:patient|had_event|event:2026-09-20T05:07:00+00:00:food:7e59a2d6",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T05:07:00+00:00:food:7e59a2d6",
+      "weight": 1.9,
+      "created_at": "2026-09-20T05:07:00+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:07:00+00:00:food:7e59a2d6|about|intent:food": {
+      "id": "event:2026-09-20T05:07:00+00:00:food:7e59a2d6|about|intent:food",
+      "source": "event:2026-09-20T05:07:00+00:00:food:7e59a2d6",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 1.9,
+      "created_at": "2026-09-20T05:07:00+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T05:07:00+00:00:food:7e59a2d6|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T05:07:00+00:00:food:7e59a2d6|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T05:07:00+00:00:food:7e59a2d6",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.9,
+      "created_at": "2026-09-20T05:07:00+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "person:patient|had_event|event:2026-09-20T01-06-54-897:food:pizza": {
+      "id": "person:patient|had_event|event:2026-09-20T01-06-54-897:food:pizza",
+      "source": "person:patient",
+      "relation": "had_event",
+      "target": "event:2026-09-20T01-06-54-897:food:pizza",
+      "weight": 1.0,
+      "created_at": "2026-09-20T05:07:40+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-06-54-897:food:pizza|about|intent:food": {
+      "id": "event:2026-09-20T01-06-54-897:food:pizza|about|intent:food",
+      "source": "event:2026-09-20T01-06-54-897:food:pizza",
+      "relation": "about",
+      "target": "intent:food",
+      "weight": 1.0,
+      "created_at": "2026-09-20T05:07:40+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-06-54-897:food:pizza|on_day|day:2026-09-20": {
+      "id": "event:2026-09-20T01-06-54-897:food:pizza|on_day|day:2026-09-20",
+      "source": "event:2026-09-20T01-06-54-897:food:pizza",
+      "relation": "on_day",
+      "target": "day:2026-09-20",
+      "weight": 1.0,
+      "created_at": "2026-09-20T05:07:40+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-06-54-897:food:pizza|confirmed|intent:food": {
+      "id": "event:2026-09-20T01-06-54-897:food:pizza|confirmed|intent:food",
+      "source": "event:2026-09-20T01-06-54-897:food:pizza",
+      "relation": "confirmed",
+      "target": "intent:food",
+      "weight": 1.0,
+      "created_at": "2026-09-20T05:07:40+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    },
+    "event:2026-09-20T01-06-54-897:food:pizza|followed|event:2026-09-20T05:07:00+00:00:food:7e59a2d6": {
+      "id": "event:2026-09-20T01-06-54-897:food:pizza|followed|event:2026-09-20T05:07:00+00:00:food:7e59a2d6",
+      "source": "event:2026-09-20T01-06-54-897:food:pizza",
+      "relation": "followed",
+      "target": "event:2026-09-20T05:07:00+00:00:food:7e59a2d6",
+      "weight": 1.0,
+      "created_at": "2026-09-20T05:07:40+00:00",
+      "last_seen": "2026-09-20T05:07:40+00:00",
+      "props": {}
+    }
+  }
+}

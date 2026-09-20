@@ -420,6 +420,12 @@ class DrawingFeatureStore:
     def list_ids(self) -> list[str]:
         return list(self._data["drawings"])
 
+    def delete(self, drawing_id: str) -> None:
+        if drawing_id not in self._data["drawings"]:
+            raise KeyError(f"Unknown drawing {drawing_id!r}")
+        del self._data["drawings"][drawing_id]
+        self.save()
+
     def add(
         self,
         strokes: Any,
@@ -495,6 +501,7 @@ class DrawingFeatureStore:
                 {
                     "id": drawing_id,
                     "label": record.get("label"),
+                    "metadata": record.get("metadata") or {},
                     **parts,
                 }
             )
