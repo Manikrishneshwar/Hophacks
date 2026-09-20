@@ -113,6 +113,9 @@ def main() -> None:
         qr(tablet_url)
         print("  caretaker phone — add this page to the home screen and keep it open")
         qr(caretaker_url)
+        print()
+        print("  caretaker app  android/app/build/outputs/apk/debug/app-debug.apk")
+        print("                 sideload on the caregiver phone, then type this laptop's Wi-Fi address")
     else:
         print("  tablet         could not detect a LAN address; are you on Wi-Fi?")
 

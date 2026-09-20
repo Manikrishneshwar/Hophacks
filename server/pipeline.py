@@ -181,7 +181,7 @@ def fallback_closing(tag_id: str | None, detail: str | None = None) -> str:
     token = (detail or "").strip().lower()
     if token in {"call", "caretaker"}:
         name = str(caretaker().get("name") or "your caretaker").strip()
-        return f"Calling {name} now."
+        return f"I've let {name} know. Help is on the way."
     if is_specific(detail, tag_id):
         name = (detail or "").strip()
         if tag_id == "food":

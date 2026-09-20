@@ -438,6 +438,13 @@ class MemoryGraph:
                 size = 42
             if node["type"] == "event":
                 size = 10 + min(16, weight * 4)
+            props = dict(node.get("props") or {})
+            image = None
+            if node["type"] == "drawing":
+                label = str(node.get("label") or "")
+                if "T" in label:
+                    image = f"/captures/{label}.png"
+                    props.setdefault("image", image)
             nodes.append(
                 {
                     "id": node["id"],
@@ -449,7 +456,8 @@ class MemoryGraph:
                     "font": {"color": "#e7e9ee", "size": 13 if node["type"] != "event" else 11},
                     "weight": weight,
                     "last_seen": node.get("last_seen"),
-                    "props": node.get("props") or {},
+                    "props": props,
+                    "image": image,
                 }
             )
         edges = []

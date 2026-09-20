@@ -225,5 +225,28 @@ class CaptureStore:
                 break
         return records
 
+    def for_day(self, day: str | None = None) -> list[dict[str, Any]]:
+        """Today's captures, newest first. Ids sort as ISO dates, so we stop
+        as soon as the filename rolls to an earlier day."""
+        stamp = day or datetime.now().strftime("%Y-%m-%d")
+        if not self.index_path.exists():
+            return []
+        with self._lock:
+            lines = self.index_path.read_text(encoding="utf-8").splitlines()
+        records: list[dict[str, Any]] = []
+        for line in reversed(lines):
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not str(row.get("id") or "").startswith(stamp):
+                if records:
+                    break
+                continue
+            records.append(row)
+        return records
+
 
 store = CaptureStore(config.CAPTURE_DIR, config.INDEX_PATH, config.ANSWERS_PATH)

@@ -144,7 +144,7 @@ def main() -> int:
                   "spoken prompt did not reach the caretaker")
             check(any((row or {}).get("answer") == "yes" for row in (event.get("answers") or [])),
                   "yes tap was missing from answers")
-            leak = [kind for kind in types if kind not in ("welcome", "caretaker")]
+            leak = [kind for kind in types if kind not in ("welcome", "caretaker", "stats")]
             check(not leak, f"caretaker socket saw live traffic: {leak}")
 
             card = phone.locator(f'article[data-id="{event["id"]}"]')

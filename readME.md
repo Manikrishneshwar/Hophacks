@@ -61,12 +61,21 @@ The desktop view at <http://localhost:8000/viewer> mirrors strokes live and
 shows previous captures. It is entirely optional — captures are stored whether
 or not it is open.
 
-The caretaker phone at `/caretaker` is a separate page for the caregiver. After
-each drawing is spoken and confirmed, that phone gets the PNG, the lines that
-were said, and the yes/no tap. Startup prints a second QR code for it. On
-Android Chrome, use **Add to Home Screen** and keep the page open on the same
-Wi-Fi; lock-screen push needs HTTPS, so the alert is a chime, vibration, and
-the card on that page.
+The caretaker Android app is a real APK, not a webpage. Sideload
+`android/app/build/outputs/apk/debug/app-debug.apk` onto the caregiver phone
+(allow unknown sources). Open it on the same Wi-Fi, type the laptop address
+printed by `run.py` (never `localhost`), and allow notifications. **Alerts**
+shows each finished drawing with its image, spoken lines, and yes/no.
+**Brain** is the memory graph; tap a drawing node to see the PNG. Keep the
+app running so the foreground service can receive events.
+
+A confirmed help request does **not** open the phone dialer on the pad. The
+pad stays on the canvas and says help is on the way. The caretaker app gets a
+high-priority emergency notification (alarm sound, vibration, full-screen
+HELP) that outranks ordinary drawing alerts.
+
+The `/caretaker` webpage still exists as a fallback. Startup still prints a
+QR code for it.
 
 The second-brain view at <http://localhost:8000/brain> is the patient memory
 graph: people, intents, drawings, and days linked together. Use **Load sample
@@ -339,6 +348,8 @@ overridden from the shell.
 .\.venv\Scripts\python.exe scripts\eval_benchmark.py selftest # catalog, scoring, HTML report
 .\.venv\Scripts\python.exe scripts\speech_test.py    # synthesis, caching, fallback, confirm
 .\.venv\Scripts\python.exe scripts\caretaker_test.py # caregiver phone gets image + yes/no
+.\.venv\Scripts\python.exe scripts\emergency_test.py # help alerts the caretaker, pad does not dial
+.\.venv\Scripts\python.exe scripts\build_caretaker_apk.py # debug APK for the caregiver phone
 .\.venv\Scripts\python.exe scripts\gemini_key_test.py # GEMINI_API_KEY actually reaches Gemini
 .\.venv\Scripts\python.exe scripts\smoke_test.py     # HTTP path, against a running server
 .\.venv\Scripts\python.exe scripts\show_data.py      # list what has been captured
@@ -358,8 +369,9 @@ server/pipeline.py  the step 2 hook: drawing in, text out
 server/speech.py    ElevenLabs synthesis and its on-disk cache
 web/canvas.html     tablet drawing surface
 web/viewer.html     optional desktop view
-web/caretaker.html  caregiver phone feed and alerts
+web/caretaker.html  caregiver web fallback
 web/brain.html      second-brain memory graph
+android/            native caretaker app (Alerts + Brain tabs)
 memory_graph.py     nodes and weighted links behind /brain
 stroke_geometry.py  reads a 1 or 2, and grades game shapes, without a model
 local_vision.py     reads the drawing on this machine when Gemini is unreachable
@@ -489,8 +501,10 @@ re-run to replace them. Re-running only updates, never duplicates.
 
 A no tap retries the next guess. After a
 yes, follow-ups only run when the request is still generic (water does not
-ask tea; help offers to call the named caretaker). Then the pad speaks a
-caregiver closing (`I'll get you some water.`).
+ask tea; help offers to alert the named caretaker). The pad stays on the
+canvas and does not open a phone dialer; the caretaker app gets an emergency
+notification instead. Then the pad speaks a caregiver closing
+(`I'll get you some water.`).
 
 A drawing that is not a care need is no longer forced into food, water, help,
 or rest. Mountains, a sun, a book, or a little scene is `story`; a smile, a

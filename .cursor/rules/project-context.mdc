@@ -34,13 +34,16 @@ state and the working agreements.
 | `xai_backend.py` | Grok over plain HTTP, between the Gemini chain and the local model |
 | `web/canvas.html/js` | Tablet surface: drawing, idle capture, taps, speech |
 | `web/viewer.html/js` | Optional desktop view, purely a listener |
-| `web/caretaker.html/js` | Caregiver phone: finished drawing, prompts, yes/no |
+| `web/caretaker.html/js` | Caregiver web fallback |
+| `web/brain.html/js` | Memory graph; embed mode for the Android app |
+| `android/` | Native caretaker app: Alerts + Brain, emergency notifications |
 
 Tests, each starting its own server on a free port: `browser_test.py` (capture
 loop), `tap_test.py` (tap answers, multi-touch), `smoothing_test.py` (tremor
 filter), `pipeline_test.py` (what step 2 receives), `speech_test.py` (synthesis,
 caching, keyless fallback, confirming tap), `caretaker_test.py` (caregiver phone
-gets image + prompts + yes/no), `recognize_test.py` (Gemini ranking
+gets image + prompts + yes/no), `emergency_test.py` (help alerts the caretaker
+without dialing the pad), `recognize_test.py` (Gemini ranking
 harness, timeout fallback), `digit_test.py` (geometric 1 / 2 detection and
 offline shape grading, stdlib only), `model_chain_test.py` (model fallback,
 stubbed client), `local_vision_test.py` (on-machine fallback and its ordering
@@ -50,6 +53,7 @@ against templates, stubbed HTTP so Ollama need not be running),
 ranking report for judges). Also `smoke_test.py`, `ask.py`,
 `show_data.py`, `show_strokes.py` against a running server, and
 `seed_drawings.py` to fill the gitignored `drawings_db.json`.
+`scripts/build_caretaker_apk.py` builds the debug APK.
 
 ## Status
 
@@ -66,7 +70,8 @@ unavailable too. The spoken line may name the object
 retries the next candidate (up to three). Follow-ups
 stay on the confirmed intent and are skipped once the request is specific
 (water does not ask tea; rest has none). Help offers to call the caretaker
-from `patient_data.json`; a yes opens `tel:` on the tablet. After a yes the
+from `patient_data.json`; a yes alerts the caretaker app instead of opening
+`tel:` on the tablet. After a yes the
 pad speaks a caregiver closing and does not wait on the LLM graph patch. `SAMPLE_TEXT` remains the last fallback when ranking
 is empty, throws, or `INK_RECOGNITION=0`. `/brain` listens on the viewer
 websocket for `graph` updates and no longer auto-seeds demo data on GET.
@@ -159,12 +164,16 @@ the capture id and text in `context`. No ElevenLabs key yet: until
 `speechSynthesis`. Model still undecided — `eleven_flash_v2_5` by default,
 switchable to `eleven_multilingual_v2` if hackathon credits come through.
 
-**Caretaker phone is wired.** `/caretaker` is a home-screen page on the same
-LAN. After a capture is spoken and confirmed, `hub.to_caretakers` pushes the
-PNG URL, spoken prompts, and yes/no. History is `/api/caretaker/events`. True
-lock-screen push needs HTTPS, so alerts are in-app plus chime/vibrate while
-the page stays open. `CARETAKER_VERSION` in `web/caretaker.js` and
-`server/app.py` must match.
+**Caretaker Android app is built.** `android/` is a Kotlin app with three tabs:
+Alerts (5 at a time + Load more), Brain (`/brain?embed=1` with pinch/+/- zoom
+and Load more for the next 5 events), and Today (daily confirmed request
+counts: water, pizza, … resetting each day via `/api/caretaker/stats`). A
+foreground service keeps the caretaker WebSocket alive and posts OS
+notifications. Help is `kind=emergency` with a separate IMPORTANCE_HIGH
+channel, alarm sound, and full-screen HELP activity — not a `tel:` dialer on
+the pad. `CLIENT_VERSION` is 10; `CARETAKER_VERSION` is 2. Debug APK:
+`android/app/build/outputs/apk/debug/app-debug.apk`. `/caretaker` remains as
+a web fallback.
 
 **Tiger Data is parked** until everything else is done. Nothing is wired; only
 an unused `INK_DATABASE_URL` and an empty `CaptureStore.sinks`.
@@ -178,9 +187,9 @@ the HTTP routes, or the scripts. The user intends to specify one.
   frontend change. A tablet's socket silently reconnects after a server
   restart, so a stale page looks healthy while running old code; the version
   check forces a reload. This has already cost an hour of debugging.
-- Same idea for the caregiver phone: bump `CARETAKER_VERSION` in
-  `web/caretaker.js` and `server/app.py` together. Keep `/caretaker` open;
-  lock-screen push is not available over plain HTTP on the LAN.
+- Same idea for the caregiver web fallback: bump `CARETAKER_VERSION` in
+  `web/caretaker.js` and `server/app.py` together. The native app talks to
+  `/ws?role=caretaker` and does not use that version check.
 - The key `strokes` is a list of stroke dicts inside a capture's `.json`, but a
   filename string inside `index.jsonl`. Same name, different type.
 - `gemini-2.5-flash` looks available -- `models.list()` returns it -- and 404s

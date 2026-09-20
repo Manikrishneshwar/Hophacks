@@ -1,0 +1,260 @@
+## 2026-09-19T15:07:25+00:00
+User: pad drawing
+Summary: Recognized intent: water
+Fallback used: True
+Top candidates:
+- water: final=0.986 rank_w=1.0 likelihood=1.00 feature=0.986 (feature_fallback)
+- yes: final=0.504 rank_w=0.8 likelihood=1.00 feature=0.630 (feature_fallback)
+- rest: final=0.358 rank_w=0.6 likelihood=1.00 feature=0.597 (feature_fallback)
+- food: final=0.238 rank_w=0.4 likelihood=1.00 feature=0.595 (feature_fallback)
+- help: final=0.119 rank_w=0.2 likelihood=1.00 feature=0.594 (feature_fallback)
+
+## 2026-09-19T15:09:18+00:00
+User: pad drawing
+Summary: Recognized intent: water
+Fallback used: True
+Top candidates:
+- water: final=0.604 rank_w=1.0 likelihood=1.00 feature=0.604 (feature_fallback)
+- rest: final=0.455 rank_w=0.8 likelihood=1.00 feature=0.569 (feature_fallback)
+- yes: final=0.321 rank_w=0.6 likelihood=1.00 feature=0.535 (feature_fallback)
+- food: final=0.206 rank_w=0.4 likelihood=1.00 feature=0.514 (feature_fallback)
+- help: final=0.102 rank_w=0.2 likelihood=1.00 feature=0.510 (feature_fallback)
+
+## 2026-09-19T15:13:20+00:00
+User: pad drawing
+Summary: Recognized intent: water
+Fallback used: False
+Top candidates:
+- water: final=0.645 rank_w=1.0 likelihood=0.98 feature=0.658 (fused)
+- rest: final=0.219 rank_w=0.8 likelihood=0.45 feature=0.608 (fused)
+- yes: final=0.114 rank_w=0.6 likelihood=0.32 feature=0.591 (fused)
+- food: final=0.045 rank_w=0.4 likelihood=0.20 feature=0.564 (fused)
+- help: final=0.011 rank_w=0.2 likelihood=0.10 feature=0.572 (fused)
+
+## 2026-09-19T15:14:38+00:00
+User: pad drawing
+Summary: Recognized intent: food
+Fallback used: False
+Top candidates:
+- food: final=0.517 rank_w=1.0 likelihood=0.85 feature=0.608 (fused)
+- water: final=0.219 rank_w=0.8 likelihood=0.40 feature=0.684 (fused)
+- rest: final=0.079 rank_w=0.6 likelihood=0.20 feature=0.658 (fused)
+- help: final=0.025 rank_w=0.4 likelihood=0.10 feature=0.613 (fused)
+- yes: final=0.005 rank_w=0.2 likelihood=0.05 feature=0.545 (fused)
+
+## 2026-09-19T15:15:55+00:00
+User: pad drawing
+Summary: Recognized intent: help
+Fallback used: False
+Top candidates:
+- help: final=0.526 rank_w=1.0 likelihood=0.85 feature=0.618 (fused)
+- no: final=0.343 rank_w=0.8 likelihood=0.70 feature=0.613 (fused)
+- water: final=0.144 rank_w=0.6 likelihood=0.40 feature=0.601 (fused)
+- food: final=0.048 rank_w=0.4 likelihood=0.20 feature=0.600 (fused)
+- rest: final=0.012 rank_w=0.2 likelihood=0.10 feature=0.595 (fused)
+
+## 2026-09-19T15:17:41+00:00
+User: pad drawing
+Summary: Recognized intent: water
+Fallback used: False
+Top candidates:
+- water: final=0.547 rank_w=1.0 likelihood=0.85 feature=0.644 (fused)
+- food: final=0.251 rank_w=0.8 likelihood=0.55 feature=0.570 (fused)
+- rest: final=0.123 rank_w=0.6 likelihood=0.35 feature=0.586 (fused)
+
+## 2026-09-19T15:27:38+00:00
+User: pad drawing 2026-09-19T11-27-02-622
+Summary: Guesses rejected for capture 2026-09-19T11-27-02-622: water, food, rest
+
+## 2026-09-19T15:28:23+00:00
+User: pad drawing 2026-09-19T11-28-05-622
+Summary: Guesses rejected for capture 2026-09-19T11-28-05-622: food, water, rest
+
+## 2026-09-19T15:29:10+00:00
+User: pad drawing 2026-09-19T11-28-56-384
+Summary: Confirmed intent food: I'd like something different to eat today, please.
+
+## 2026-09-19T16:22:47+00:00
+User: pad drawing 2026-09-19T12-22-20-203
+Summary: Guesses rejected for capture 2026-09-19T12-22-20-203: food, water, rest
+
+## 2026-09-19T16:23:35+00:00
+User: pad drawing 2026-09-19T12-23-20-726
+Summary: Confirmed intent food: I would like something to eat, please.
+
+## 2026-09-19T16:32:47+00:00
+User: pad drawing 2026-09-19T12-32-39-208
+Summary: Confirmed intent food: I would like an apple, please. (apple)
+
+## 2026-09-19T16:33:54+00:00
+User: pad drawing 2026-09-19T12-33-32-975
+Summary: Confirmed intent food: I would like some water, please. (water)
+
+## 2026-09-19T16:34:41+00:00
+User: pad drawing 2026-09-19T12-34-34-392
+Summary: Confirmed intent food: I would like some food, please. (pizza)
+
+## 2026-09-19T16:35:54+00:00
+User: pad drawing 2026-09-19T12-35-48-859
+Summary: Confirmed intent food: I would like some pizza, please. (pizza)
+
+## 2026-09-19T16:44:07+00:00
+User: pad drawing 2026-09-19T12-43-56-904
+Summary: Guesses rejected for capture 2026-09-19T12-43-56-904: food, water
+
+## 2026-09-19T16:44:40+00:00
+User: pad drawing 2026-09-19T12-44-33-430
+Summary: Confirmed intent food: I would like a slice of pizza, please. (pizza)
+
+## 2026-09-19T16:45:43+00:00
+User: pad drawing 2026-09-19T12-45-25-680
+Summary: Confirmed intent food: I would like some soup, please. (soup)
+
+## 2026-09-19T16:46:22+00:00
+User: pad drawing 2026-09-19T12-46-10-218
+Summary: Confirmed intent water: I would like a cup of tea, please. (tea)
+
+## 2026-09-19T16:49:02+00:00
+User: pad drawing 2026-09-19T12-48-47-883
+Summary: Confirmed intent help: I need help, please.
+
+## 2026-09-19T16:53:43+00:00
+User: pad drawing 2026-09-19T12-53-36-527
+Summary: Confirmed intent water: I would like a cup of water, please.
+
+## 2026-09-19T16:54:28+00:00
+User: pad drawing 2026-09-19T12-54-22-462
+Summary: Confirmed intent food: I would like some pizza, please. (pizza)
+
+## 2026-09-19T16:55:08+00:00
+User: pad drawing 2026-09-19T12-54-53-678
+Summary: Confirmed intent help: Please help me call Jordan.
+
+## 2026-09-19T16:55:55+00:00
+User: pad drawing 2026-09-19T12-55-44-877
+Summary: Confirmed intent rest: I need to rest.
+
+## 2026-09-19T16:56:43+00:00
+User: pad drawing 2026-09-19T12-56-37-457
+Summary: Guesses rejected for capture 2026-09-19T12-56-37-457: water, food
+
+## 2026-09-19T17:11:45+00:00
+User: pad drawing 2026-09-19T13-11-39-943
+Summary: Guesses rejected for capture 2026-09-19T13-11-39-943: food
+
+## 2026-09-19T17:12:09+00:00
+User: pad drawing 2026-09-19T13-12-04-925
+Summary: Confirmed intent food: I would like some cake, please. (cake)
+
+## 2026-09-19T17:12:37+00:00
+User: pad drawing 2026-09-19T13-12-22-706
+Summary: Guesses rejected for capture 2026-09-19T13-12-22-706: water, rest, food
+
+## 2026-09-19T17:21:46+00:00
+User: pad drawing 2026-09-19T13-21-39-987
+Summary: Confirmed intent food: I would like some pizza, please. (pizza)
+
+## 2026-09-19T17:34:21+00:00
+User: pad drawing 2026-09-19T13-34-16-339
+Summary: Confirmed intent food: I would like a slice of pizza, please. (pizza)
+
+## 2026-09-19T19:08:19+00:00
+User: pad drawing 2026-09-19T15-08-14-012
+Summary: Confirmed intent food: I would like an apple, please. (apple)
+
+## 2026-09-19T19:08:45+00:00
+User: pad drawing 2026-09-19T15-08-38-625
+Summary: Guesses rejected for capture 2026-09-19T15-08-38-625: food, water
+
+## 2026-09-19T19:09:06+00:00
+User: pad drawing 2026-09-19T15-08-58-818
+Summary: Guesses rejected for capture 2026-09-19T15-08-58-818: water, food
+
+## 2026-09-19T19:09:27+00:00
+User: pad drawing 2026-09-19T15-09-16-403
+Summary: Confirmed intent help: Calling Jordan Chen now. (call)
+
+## 2026-09-19T19:10:16+00:00
+User: pad drawing 2026-09-19T15-10-02-791
+Summary: Guesses rejected for capture 2026-09-19T15-10-02-791: help, food, water
+
+## 2026-09-19T19:10:38+00:00
+User: pad drawing 2026-09-19T15-10-25-432
+Summary: Guesses rejected for capture 2026-09-19T15-10-25-432: water, help, food
+
+## 2026-09-19T19:11:01+00:00
+User: pad drawing 2026-09-19T15-10-50-629
+Summary: Confirmed intent rest: I would like to lie down for a nap now.
+
+## 2026-09-19T19:34:59+00:00
+User: pad drawing 2026-09-19T15-34-49-274
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+
+## 2026-09-19T19:35:26+00:00
+User: pad drawing 2026-09-19T15-35-23-435
+Summary: Confirmed intent food: I would like a slice of pizza, please. (pizza)
+
+## 2026-09-19T19:35:47+00:00
+User: pad drawing 2026-09-19T15-35-41-445
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+
+## 2026-09-19T19:36:30+00:00
+User: pad drawing 2026-09-19T15-36-13-224
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+
+## 2026-09-19T19:37:03+00:00
+User: pad drawing 2026-09-19T15-36-49-842
+Summary: Guesses rejected for capture 2026-09-19T15-36-49-842: food, water, help
+
+## 2026-09-19T19:37:26+00:00
+User: pad drawing 2026-09-19T15-37-14-238
+Summary: Guesses rejected for capture 2026-09-19T15-37-14-238: help, water, food
+
+## 2026-09-19T19:37:43+00:00
+User: pad drawing 2026-09-19T15-37-34-641
+Summary: Guesses rejected for capture 2026-09-19T15-37-34-641: help, water, rest
+
+## 2026-09-19T19:37:55+00:00
+User: pad drawing 2026-09-19T15-37-51-629
+Summary: Confirmed intent food: I would like some pizza, please. (pizza)
+
+## 2026-09-19T19:38:27+00:00
+User: pad drawing 2026-09-19T15-38-24-046
+Summary: Confirmed intent water: I would like a glass of water, please.
+
+## 2026-09-19T19:39:25+00:00
+User: pad drawing 2026-09-19T15-39-17-586
+Summary: Confirmed intent food: I would like some soup, please. (soup)
+
+## 2026-09-19T19:39:44+00:00
+User: pad drawing 2026-09-19T15-39-39-440
+Summary: Confirmed intent rest: I would like to lie down and rest, please. (lie down)
+
+## 2026-09-19T19:40:09+00:00
+User: pad drawing 2026-09-19T15-40-06-240
+Summary: Confirmed intent water: I would like some water, please.
+
+## 2026-09-19T19:40:31+00:00
+User: pad drawing 2026-09-19T15-40-25-633
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+
+## 2026-09-19T19:41:12+00:00
+User: pad drawing 2026-09-19T15-40-59-057
+Summary: Guesses rejected for capture 2026-09-19T15-40-59-057: food, water
+
+## 2026-09-19T19:41:26+00:00
+User: pad drawing 2026-09-19T15-41-20-248
+Summary: Guesses rejected for capture 2026-09-19T15-41-20-248: water, food
+
+## 2026-09-19T19:42:43+00:00
+User: pad drawing 2026-09-19T15-42-38-233
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+
+## 2026-09-19T20:03:30+00:00
+User: pad drawing 2026-09-19T16-03-24-757
+Summary: Confirmed intent food: I would like some pizza, please. (pizza)
+
+## 2026-09-19T20:07:40+00:00
+User: pad drawing 2026-09-19T16-07-35-952
+Summary: Confirmed intent help: I've let Jordan Chen know. Help is on the way. (call)
+

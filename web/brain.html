@@ -10,7 +10,7 @@
   <header>
     <span id="dot" class="dot" title="live updates"></span>
     <h1>Second brain</h1>
-    <span class="meta" id="meta">scroll zoom · drag move · shift-drag rotate · live after each confirmed drawing</span>
+    <span class="meta" id="meta">pinch or +/− to zoom · drag to pan · shift-drag to rotate</span>
     <span class="spacer"></span>
     <button type="button" id="demo">Load sample week</button>
     <a class="nav" href="/viewer">Ink viewer</a>
@@ -18,18 +18,24 @@
 
   <div class="brain-layout">
     <div class="brain-graphs">
-      <section class="graph-pane">
+      <section class="graph-pane" id="daily-pane">
         <h3>Today <span id="daily-meta" class="meta"></span>
           <span class="graph-tools">
+            <button type="button" data-target="daily" data-act="out" title="Zoom out">−</button>
+            <button type="button" data-target="daily" data-act="in" title="Zoom in">+</button>
+            <button type="button" data-target="daily" data-act="fit" title="Fit">fit</button>
             <button type="button" data-target="daily" data-deg="-20" title="Rotate left">⟲</button>
             <button type="button" data-target="daily" data-deg="20" title="Rotate right">⟳</button>
           </span>
         </h3>
         <div class="graph-host"><canvas id="daily-canvas"></canvas></div>
       </section>
-      <section class="graph-pane">
+      <section class="graph-pane" id="history-pane">
         <h3>History <span id="history-meta" class="meta"></span>
           <span class="graph-tools">
+            <button type="button" data-target="history" data-act="out" title="Zoom out">−</button>
+            <button type="button" data-target="history" data-act="in" title="Zoom in">+</button>
+            <button type="button" data-target="history" data-act="fit" title="Fit">fit</button>
             <button type="button" data-target="history" data-deg="-20" title="Rotate left">⟲</button>
             <button type="button" data-target="history" data-deg="20" title="Rotate right">⟳</button>
           </span>
@@ -37,14 +43,22 @@
         <div class="graph-host"><canvas id="history-canvas"></canvas></div>
       </section>
     </div>
-    <aside id="side">
-      <p class="kicker">Selected</p>
-      <h2 id="side-title">Waiting</h2>
-      <p id="side-type" class="meta">Click a node</p>
-      <dl id="side-facts"></dl>
-      <p class="kicker">Neighbors</p>
-      <div id="side-links"></div>
-    </aside>
+    <div class="brain-detail">
+      <aside id="side">
+        <div class="side-head">
+          <div>
+            <p class="kicker">Selected</p>
+            <h2 id="side-title">Waiting</h2>
+            <p id="side-type" class="meta">Click a node</p>
+          </div>
+          <img id="side-image" alt="drawing" hidden>
+        </div>
+        <dl id="side-facts"></dl>
+        <p class="kicker" id="side-links-kicker">Linked</p>
+        <div id="side-links"></div>
+      </aside>
+      <button type="button" id="load-more" hidden>Load more</button>
+    </div>
   </div>
 
   <footer id="legend"></footer>
